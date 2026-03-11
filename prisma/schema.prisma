@@ -76,6 +76,20 @@ model Verification {
 
 // ─── Domain Tables ────────────────────────────────────────────
 
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryChildren")
+  products  Product[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("categories")
+}
+
 model DeliveryAddress {
   id            String   @id @default(cuid())
   userId        String
@@ -96,19 +110,49 @@ model DeliveryAddress {
   @@map("delivery_addresses")
 }
 
+model PickupLocation {
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String?
+  addressLine1      String
+  addressLine2      String?
+  city              String
+  state             String
+  landmark          String?
+  contactName       String?
+  contactPhone      String?
+  pickupInstructions String?
+  isActive          Boolean           @default(true)
+  logisticsProvider LogisticsProvider @default(INTERNAL)
+  externalReference String?
+  logisticsMetadata Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  orders Order[]
+
+  @@map("pickup_locations")
+}
+
 model Product {
   id                    String        @id @default(cuid())
   name                  String
   slug                  String        @unique
   description           String?
   images                String[]      @default([])
-  originalCost          Int           // Lagos Island cost in kobo
+  videos                String[]      @default([])
+  colors                String[]      @default([])
+  sizes                 String[]      @default([])
+  customFields          Json          @default("[]")
+  originalCost          Int           // Source cost in kobo
   markupPrice           Int           // Selling price in kobo
   moq                   Int           @default(1)
   isPreorder            Boolean       @default(false)
   expectedProcurementAt DateTime?
   priceLockDays         Int           @default(60)
-  category              String?
+  categoryId            String?
+  category              Category?     @relation(fields: [categoryId], references: [id])
   status                ProductStatus @default(AVAILABLE)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -130,10 +174,20 @@ model Order {
   user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId          String
   product            Product     @relation(fields: [productId], references: [id])
+  deliveryMethod     DeliveryMethod @default(DELIVERY)
   addressId          String?
   deliveryAddress    DeliveryAddress? @relation(fields: [addressId], references: [id])
+  pickupLocationId   String?
+  pickupLocation     PickupLocation? @relation(fields: [pickupLocationId], references: [id])
+  logisticsProvider  LogisticsProvider @default(INTERNAL)
+  logisticsReference String?
+  logisticsMetadata  Json?
   quantity           Int         @default(1)
+  selectedColor      String?
+  selectedSize       String?
+  customSelections   Json        @default("{}")
   totalAmount        Int         // Locked price at order creation in kobo
+  installmentMonths  Int         @default(3) // Duration the user wants to spread payments
   amountPaid         Int         @default(0)
   status             OrderStatus @default(PENDING)
   isDepositPaid      Boolean     @default(false)
@@ -164,6 +218,16 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   EXPIRED
+}
+
+enum DeliveryMethod {
+  DELIVERY
+  PICKUP
+}
+
+enum LogisticsProvider {
+  INTERNAL
+  SPEEDAF
 }
 
 model Transaction {

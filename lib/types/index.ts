@@ -64,6 +64,102 @@ export interface ActionResult<T = unknown> {
   errors?: Record<string, string[]>;
 }
 
+export interface ProductCustomFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface ProductCustomField {
+  id: string;
+  label: string;
+  type: "select" | "text";
+  required: boolean;
+  options: ProductCustomFieldOption[];
+}
+
+export type ProductCustomSelections = Record<string, string>;
+
+export type DeliveryMethod = "DELIVERY" | "PICKUP";
+
+export type LogisticsProvider = "INTERNAL" | "SPEEDAF";
+
+export interface PickupLocationSummary {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  landmark?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  pickupInstructions?: string | null;
+  logisticsProvider: LogisticsProvider;
+}
+
+export function coerceProductCustomFields(
+  value: unknown,
+): ProductCustomField[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((field) => {
+      if (!field || typeof field !== "object") return null;
+
+      const record = field as Record<string, unknown>;
+      const options = Array.isArray(record.options)
+        ? record.options
+            .map((option) => {
+              if (!option || typeof option !== "object") return null;
+              const optionRecord = option as Record<string, unknown>;
+              if (
+                typeof optionRecord.label !== "string" ||
+                typeof optionRecord.value !== "string"
+              ) {
+                return null;
+              }
+
+              return {
+                label: optionRecord.label,
+                value: optionRecord.value,
+              };
+            })
+            .filter(
+              (option): option is ProductCustomFieldOption => option !== null,
+            )
+        : [];
+
+      if (
+        typeof record.id !== "string" ||
+        typeof record.label !== "string" ||
+        (record.type !== "select" && record.type !== "text")
+      ) {
+        return null;
+      }
+
+      return {
+        id: record.id,
+        label: record.label,
+        type: record.type,
+        required: Boolean(record.required),
+        options,
+      } satisfies ProductCustomField;
+    })
+    .filter((field): field is ProductCustomField => field !== null);
+}
+
+export function coerceCustomSelections(
+  value: unknown,
+): ProductCustomSelections {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+}
+
 // ─── Order Helpers ────────────────────────────────────────────────
 
 export interface OrderWithProduct {

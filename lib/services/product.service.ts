@@ -1,15 +1,24 @@
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import type { ProductCustomField } from "@/lib/types";
+
+function toJsonArray(
+  value: ProductCustomField[] | undefined,
+): Prisma.InputJsonValue {
+  return (value ?? []) as unknown as Prisma.InputJsonValue;
+}
 
 export const productService = {
   /**
    * Get all available products
    */
-  async getAll(options?: { category?: string; status?: string }) {
+  async getAll(options?: { categoryId?: string; status?: string }) {
     return prisma.product.findMany({
       where: {
         status: (options?.status as "AVAILABLE") ?? "AVAILABLE",
-        ...(options?.category ? { category: options.category } : {}),
+        ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
       },
+      include: { category: true },
       orderBy: { createdAt: "desc" },
     });
   },
@@ -18,14 +27,20 @@ export const productService = {
    * Get a product by slug
    */
   async getBySlug(slug: string) {
-    return prisma.product.findUnique({ where: { slug } });
+    return prisma.product.findUnique({
+      where: { slug },
+      include: { category: true },
+    });
   },
 
   /**
    * Get a product by ID
    */
   async getById(id: string) {
-    return prisma.product.findUnique({ where: { id } });
+    return prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    });
   },
 
   /**
@@ -36,15 +51,27 @@ export const productService = {
     slug: string;
     description?: string;
     images?: string[];
+    videos?: string[];
+    colors?: string[];
+    sizes?: string[];
+    customFields?: ProductCustomField[];
     originalCost: number;
     markupPrice: number;
     moq?: number;
     isPreorder?: boolean;
     expectedProcurementAt?: Date;
     priceLockDays?: number;
-    category?: string;
+    categoryId?: string | null;
   }) {
-    return prisma.product.create({ data });
+    const { categoryId, customFields, ...rest } = data;
+
+    return prisma.product.create({
+      data: {
+        ...rest,
+        customFields: toJsonArray(customFields),
+        ...(categoryId ? { category: { connect: { id: categoryId } } } : {}),
+      },
+    });
   },
 
   /**
@@ -57,16 +84,35 @@ export const productService = {
       slug: string;
       description: string;
       images: string[];
+      videos: string[];
+      colors: string[];
+      sizes: string[];
+      customFields: ProductCustomField[];
       originalCost: number;
       markupPrice: number;
       moq: number;
       isPreorder: boolean;
       expectedProcurementAt: Date;
       priceLockDays: number;
-      category: string;
+      categoryId: string | null;
       status: "AVAILABLE" | "OUT_OF_STOCK" | "DISCONTINUED";
-    }>
+    }>,
   ) {
-    return prisma.product.update({ where: { id }, data });
+    const { categoryId, customFields, ...rest } = data;
+
+    const productData: Prisma.ProductUpdateInput = {
+      ...rest,
+      ...(customFields ? { customFields: toJsonArray(customFields) } : {}),
+      ...(categoryId !== undefined
+        ? categoryId
+          ? { category: { connect: { id: categoryId } } }
+          : { category: { disconnect: true } }
+        : {}),
+    };
+
+    return prisma.product.update({
+      where: { id },
+      data: productData,
+    });
   },
 };

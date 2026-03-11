@@ -1,16 +1,13 @@
 import { prisma } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
-import type {
-  PaystackInitResponse,
-  PaystackVerifyResponse,
-} from "@/lib/types";
+import type { PaystackInitResponse, PaystackVerifyResponse } from "@/lib/types";
 import { PAYSTACK_ENDPOINTS } from "@/lib/consts";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!;
 
 async function paystackFetch<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const res = await fetch(url, {
     ...options,
@@ -71,7 +68,7 @@ export const paymentService = {
             idempotency_key: idempotencyKey,
           },
         }),
-      }
+      },
     );
 
     return {
@@ -86,14 +83,17 @@ export const paymentService = {
    */
   async verifyPayment(reference: string) {
     return paystackFetch<PaystackVerifyResponse>(
-      PAYSTACK_ENDPOINTS.VERIFY(reference)
+      PAYSTACK_ENDPOINTS.VERIFY(reference),
     );
   },
 
   /**
    * Process a successful webhook — idempotent
    */
-  async processWebhook(reference: string, paystackData: Record<string, unknown>) {
+  async processWebhook(
+    reference: string,
+    paystackData: Record<string, unknown>,
+  ) {
     // Find the pending transaction by reference
     const transaction = await prisma.transaction.findUnique({
       where: { paystackRef: reference },
@@ -115,7 +115,10 @@ export const paymentService = {
       where: { id: transaction.id },
       data: {
         status: "SUCCESS",
-        paystackResponse: paystackData,
+        paystackResponse: paystackData as unknown as Record<
+          string,
+          string | number | boolean | null
+        >,
       },
     });
 
