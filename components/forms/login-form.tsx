@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,6 @@ import { toast } from "sonner";
 
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();
-  const searchParams = useSearchParams();
 
   function handleSubmit(formData: FormData) {
     const email = formData.get("email") as string;
@@ -23,9 +21,11 @@ export function LoginForm() {
         return;
       }
       toast.success("Welcome back!");
-      const callbackUrl = searchParams.get("callbackUrl");
-      const role = result.data?.user?.role;
-      const defaultDest = role === "ADMIN" ? "/admin" : "/dashboard";
+      const callbackUrl = new URLSearchParams(window.location.search).get(
+        "callbackUrl",
+      );
+      const user = result.data?.user as { role?: string } | undefined;
+      const defaultDest = user?.role === "ADMIN" ? "/admin" : "/dashboard";
       window.location.href = callbackUrl ?? defaultDest;
     });
   }
