@@ -47,6 +47,12 @@ export default async function AdminLayout({
             >
               Pickup
             </a>
+            <a
+              href="/admin/settings"
+              className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
+              Settings
+            </a>
           </nav>
         </div>
       </header>

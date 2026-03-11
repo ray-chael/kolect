@@ -25,7 +25,7 @@ export function LoginForm() {
         "callbackUrl",
       );
       const user = result.data?.user as { role?: string } | undefined;
-      const defaultDest = user?.role === "ADMIN" ? "/admin" : "/dashboard";
+      const defaultDest = user?.role === "CRIMSON" ? "/admin" : "/dashboard";
       window.location.href = callbackUrl ?? defaultDest;
     });
   }

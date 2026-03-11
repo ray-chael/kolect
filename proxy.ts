@@ -27,7 +27,11 @@ export function proxy(request: NextRequest) {
     request.cookies.has("better-auth.session_token") ||
     request.cookies.has("__Secure-better-auth.session_token");
 
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/orders")) {
+  if (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/profile")
+  ) {
     if (!hasSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
