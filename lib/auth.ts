@@ -25,6 +25,11 @@ export const auth = betterAuth({
         required: false,
         defaultValue: "EMERALD",
       },
+      hasAcceptedTerms: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+      },
     },
   },
 });

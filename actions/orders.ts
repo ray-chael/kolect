@@ -6,8 +6,11 @@ import { paymentService } from "@/lib/services/payment.service";
 import { createOrderSchema, initiatePaymentSchema } from "@/lib/schemas";
 import type { ActionResult } from "@/lib/types";
 import { MIN_INSTALLMENT_KOBO } from "@/lib/consts";
+import { prisma } from "@/lib/db";
 
-function parseSelectionMap(value: FormDataEntryValue | null): Record<string, string> {
+function parseSelectionMap(
+  value: FormDataEntryValue | null,
+): Record<string, string> {
   if (typeof value !== "string" || value.trim() === "") return {};
 
   try {
@@ -20,18 +23,35 @@ function parseSelectionMap(value: FormDataEntryValue | null): Record<string, str
 /**
  * Create a new "Contribute to Buy" order
  */
-export async function createOrder(
-  formData: FormData
-): Promise<ActionResult> {
+export async function createOrder(formData: FormData): Promise<ActionResult> {
   try {
     const session = await requireSession();
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { hasAcceptedTerms: true },
+    });
+    const alreadyAccepted = user?.hasAcceptedTerms ?? false;
+    const termsAcceptedNow = formData.get("termsAccepted") === "true";
+
+    if (!alreadyAccepted && !termsAcceptedNow) {
+      return {
+        success: false,
+        message:
+          "You must agree to the terms and conditions before continuing.",
+        errors: { termsAccepted: ["Required"] },
+      };
+    }
 
     const rawData = {
       productId: formData.get("productId") as string,
       quantity: Number(formData.get("quantity") || 1),
+      // If already accepted in DB, treat terms as satisfied regardless of form input
+      termsAccepted: alreadyAccepted || termsAcceptedNow,
       addressId: (formData.get("addressId") as string) || undefined,
       deliveryMethod: (formData.get("deliveryMethod") as string) || "DELIVERY",
-      pickupLocationId: (formData.get("pickupLocationId") as string) || undefined,
+      pickupLocationId:
+        (formData.get("pickupLocationId") as string) || undefined,
       recipientName: (formData.get("recipientName") as string) || undefined,
       phone: (formData.get("phone") as string) || undefined,
       addressLine1: (formData.get("addressLine1") as string) || undefined,
@@ -40,8 +60,10 @@ export async function createOrder(
       state: (formData.get("state") as string) || undefined,
       purchaseMode: (formData.get("purchaseMode") as string) || "contribute",
       installmentMonths: Number(formData.get("installmentMonths") || 3),
-      contributionCadence: (formData.get("contributionCadence") as string) || undefined,
-      contributionDuration: Number(formData.get("contributionDuration") || 0) || undefined,
+      contributionCadence:
+        (formData.get("contributionCadence") as string) || undefined,
+      contributionDuration:
+        Number(formData.get("contributionDuration") || 0) || undefined,
       selectedColor: (formData.get("selectedColor") as string) || undefined,
       selectedSize: (formData.get("selectedSize") as string) || undefined,
       customSelections: parseSelectionMap(formData.get("customSelections")),
@@ -54,6 +76,14 @@ export async function createOrder(
         message: "Validation failed",
         errors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
       };
+    }
+
+    // Persist acceptance on first agreement
+    if (!alreadyAccepted && termsAcceptedNow) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { hasAcceptedTerms: true, termsAcceptedAt: new Date() },
+      });
     }
 
     const order = await orderService.create({
@@ -69,7 +99,8 @@ export async function createOrder(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to create order",
+      message:
+        error instanceof Error ? error.message : "Failed to create order",
     };
   }
 }

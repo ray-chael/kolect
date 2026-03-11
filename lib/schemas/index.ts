@@ -62,6 +62,7 @@ export const createOrderSchema = z
   .object({
     productId: z.string().min(1, "Product is required"),
     quantity: z.number().int().min(1).default(1),
+    termsAccepted: z.boolean().default(false),
     addressId: z.string().optional(),
     deliveryMethod: z.enum(["DELIVERY", "PICKUP"]).default("DELIVERY"),
     pickupLocationId: z.string().optional(),
@@ -80,6 +81,14 @@ export const createOrderSchema = z
     customSelections: z.record(z.string(), z.string()).default({}),
   })
   .superRefine((data, ctx) => {
+    if (!data.termsAccepted) {
+      ctx.addIssue({
+        code: "custom",
+        message: "You must agree to the terms and conditions before continuing",
+        path: ["termsAccepted"],
+      });
+    }
+
     if (data.deliveryMethod === "DELIVERY") {
       if (!data.recipientName?.trim()) {
         ctx.addIssue({

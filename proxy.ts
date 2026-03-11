@@ -14,16 +14,21 @@ export function proxy(request: NextRequest) {
   response.headers.set("Referrer-Policy", "no-referrer");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(), microphone=(), geolocation=()",
   );
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
 
   // Protected route check
   const { pathname } = request.nextUrl;
 
+  // Better Auth uses "better-auth.session_token" on HTTP and
+  // "__Secure-better-auth.session_token" on HTTPS (e.g. Vercel).
+  const hasSession =
+    request.cookies.has("better-auth.session_token") ||
+    request.cookies.has("__Secure-better-auth.session_token");
+
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/orders")) {
-    const sessionCookie = request.cookies.get("better-auth.session_token");
-    if (!sessionCookie) {
+    if (!hasSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
@@ -32,8 +37,7 @@ export function proxy(request: NextRequest) {
 
   // Admin route check
   if (pathname.startsWith("/admin")) {
-    const sessionCookie = request.cookies.get("better-auth.session_token");
-    if (!sessionCookie) {
+    if (!hasSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);

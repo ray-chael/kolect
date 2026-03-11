@@ -13,10 +13,10 @@ import {
   type ProductCustomField,
 } from "@/lib/types";
 import {
-    calculateContributionPlan,
-    clampContributionDuration,
-    getContributionDurationLimits,
-    type ContributionCadence,
+  calculateContributionPlan,
+  clampContributionDuration,
+  getContributionDurationLimits,
+  type ContributionCadence,
 } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -38,6 +38,7 @@ interface ProductPurchasePanelProps {
   moq: number;
   totalPrice: number;
   priceLockDays: number;
+  hasAcceptedTerms: boolean;
 }
 
 export function ProductPurchasePanel({
@@ -50,13 +51,18 @@ export function ProductPurchasePanel({
   moq,
   totalPrice,
   priceLockDays,
+  hasAcceptedTerms,
 }: ProductPurchasePanelProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
   const [purchaseMode, setPurchaseMode] = useState<PurchaseMode>("buy-now");
   const [quantity, setQuantity] = useState(moq);
-  const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
-  const [pickupLocationId, setPickupLocationId] = useState(pickupLocations[0]?.id ?? "");
+  const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
+    "DELIVERY",
+  );
+  const [pickupLocationId, setPickupLocationId] = useState(
+    pickupLocations[0]?.id ?? "",
+  );
   const [contributionCadence, setContributionCadence] =
     useState<ContributionCadence>("monthly");
   const [contributionDuration, setContributionDuration] = useState(1);
@@ -68,7 +74,10 @@ export function ProductPurchasePanel({
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [customSelections, setCustomSelections] = useState<Record<string, string>>({});
+  const [termsAccepted, setTermsAccepted] = useState(hasAcceptedTerms);
+  const [customSelections, setCustomSelections] = useState<
+    Record<string, string>
+  >({});
 
   const effectiveTotal = totalPrice * quantity;
   const contributionPlan = useMemo(
@@ -83,7 +92,9 @@ export function ProductPurchasePanel({
   const selectedInstallmentMonths =
     purchaseMode === "buy-now" ? 1 : contributionPlan.installmentMonths;
   const durationLimits = getContributionDurationLimits(contributionCadence);
-  const selectedPickupLocation = pickupLocations.find((location) => location.id === pickupLocationId);
+  const selectedPickupLocation = pickupLocations.find(
+    (location) => location.id === pickupLocationId,
+  );
 
   const requiredFieldErrors = useMemo(() => {
     return customFields
@@ -105,7 +116,15 @@ export function ProductPurchasePanel({
     ]
       .filter((field) => !field.value.trim())
       .map((field) => field.label);
-  }, [addressLine1, city, deliveryMethod, phone, pickupLocationId, recipientName, state]);
+  }, [
+    addressLine1,
+    city,
+    deliveryMethod,
+    phone,
+    pickupLocationId,
+    recipientName,
+    state,
+  ]);
 
   function handleCustomSelection(fieldId: string, value: string) {
     setCustomSelections((current) => ({ ...current, [fieldId]: value }));
@@ -113,7 +132,9 @@ export function ProductPurchasePanel({
 
   function handleCadenceChange(nextCadence: ContributionCadence) {
     setContributionCadence(nextCadence);
-    setContributionDuration((current) => clampContributionDuration(nextCadence, current));
+    setContributionDuration((current) =>
+      clampContributionDuration(nextCadence, current),
+    );
   }
 
   function handleDeliveryMethodChange(nextMethod: "DELIVERY" | "PICKUP") {
@@ -125,7 +146,9 @@ export function ProductPurchasePanel({
 
   function handleSubmit(formData: FormData) {
     if (requiredFieldErrors.length > 0) {
-      toast.error(`Complete required fields: ${requiredFieldErrors.join(", ")}`);
+      toast.error(
+        `Complete required fields: ${requiredFieldErrors.join(", ")}`,
+      );
       return;
     }
 
@@ -134,8 +157,16 @@ export function ProductPurchasePanel({
       return;
     }
 
+    if (!termsAccepted) {
+      toast.error(
+        "You must agree to the terms and conditions before continuing.",
+      );
+      return;
+    }
+
     formData.set("productId", productId);
     formData.set("quantity", String(quantity));
+    formData.set("termsAccepted", String(termsAccepted));
     formData.set("deliveryMethod", deliveryMethod);
     formData.set("pickupLocationId", pickupLocationId);
     formData.set("recipientName", recipientName);
@@ -159,7 +190,11 @@ export function ProductPurchasePanel({
         return;
       }
 
-      if (result.data && typeof result.data === "object" && "orderId" in result.data) {
+      if (
+        result.data &&
+        typeof result.data === "object" &&
+        "orderId" in result.data
+      ) {
         const orderId = String(result.data.orderId);
 
         if (purchaseMode === "buy-now") {
@@ -181,7 +216,9 @@ export function ProductPurchasePanel({
           }
         }
 
-        toast.success("Order created. Complete your deposit to lock the price.");
+        toast.success(
+          "Order created. Complete your deposit to lock the price.",
+        );
         window.location.href = `/orders/${orderId}`;
       }
     });
@@ -190,10 +227,15 @@ export function ProductPurchasePanel({
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-primary">Configure</p>
-        <h3 className="mt-2 font-display text-2xl tracking-tight">Choose your setup</h3>
+        <p className="text-xs uppercase tracking-[0.25em] text-primary">
+          Configure
+        </p>
+        <h3 className="mt-2 font-display text-2xl tracking-tight">
+          Choose your setup
+        </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pick the right variant for {productName}, then choose whether to pay outright now or switch to contribute-to-buy.
+          Pick the right variant for {productName}, then choose whether to pay
+          outright now or switch to contribute-to-buy.
         </p>
       </div>
 
@@ -210,9 +252,12 @@ export function ProductPurchasePanel({
                   : "border-border/60 bg-background hover:border-primary/30"
               }`}
             >
-              <p className="text-sm font-semibold tracking-tight">Buy immediately</p>
+              <p className="text-sm font-semibold tracking-tight">
+                Buy immediately
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Pay the full {formatNaira(effectiveTotal)} now. This is the default option.
+                Pay the full {formatNaira(effectiveTotal)} now. This is the
+                default option.
               </p>
             </button>
             <button
@@ -224,9 +269,12 @@ export function ProductPurchasePanel({
                   : "border-border/60 bg-background hover:border-primary/30"
               }`}
             >
-              <p className="text-sm font-semibold tracking-tight">Contribute to buy</p>
+              <p className="text-sm font-semibold tracking-tight">
+                Contribute to buy
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Start with {formatNaira(contributionPlan.depositAmount)} and spread the balance up to 3 months.
+                Start with {formatNaira(contributionPlan.depositAmount)} and
+                spread the balance up to 3 months.
               </p>
             </button>
           </div>
@@ -236,7 +284,8 @@ export function ProductPurchasePanel({
           <div>
             <Label>Fulfillment</Label>
             <p className="mt-1 text-xs text-muted-foreground">
-              Delivery requires the shopper address. Pickup lets the customer collect from a registered location.
+              Delivery requires the shopper address. Pickup lets the customer
+              collect from a registered location.
             </p>
           </div>
 
@@ -250,9 +299,12 @@ export function ProductPurchasePanel({
                   : "border-border/60 bg-background hover:border-primary/30"
               }`}
             >
-              <p className="text-sm font-semibold tracking-tight">Door delivery</p>
+              <p className="text-sm font-semibold tracking-tight">
+                Door delivery
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Collect the shopper address now so dispatch is not blocked later.
+                Collect the shopper address now so dispatch is not blocked
+                later.
               </p>
             </button>
             <button
@@ -353,7 +405,9 @@ export function ProductPurchasePanel({
 
               {selectedPickupLocation && (
                 <div className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm">
-                  <p className="font-medium tracking-tight">{selectedPickupLocation.name}</p>
+                  <p className="font-medium tracking-tight">
+                    {selectedPickupLocation.name}
+                  </p>
                   <p className="mt-1 text-muted-foreground">
                     {selectedPickupLocation.addressLine1}
                     {selectedPickupLocation.addressLine2
@@ -361,7 +415,8 @@ export function ProductPurchasePanel({
                       : ""}
                     {`, ${selectedPickupLocation.city}, ${selectedPickupLocation.state}`}
                   </p>
-                  {(selectedPickupLocation.contactName || selectedPickupLocation.contactPhone) && (
+                  {(selectedPickupLocation.contactName ||
+                    selectedPickupLocation.contactPhone) && (
                     <p className="mt-1 text-muted-foreground">
                       {selectedPickupLocation.contactName ?? "Pickup contact"}
                       {selectedPickupLocation.contactPhone
@@ -388,10 +443,14 @@ export function ProductPurchasePanel({
               type="number"
               min={moq}
               value={quantity}
-              onChange={(event) => setQuantity(Math.max(moq, Number(event.target.value) || moq))}
+              onChange={(event) =>
+                setQuantity(Math.max(moq, Number(event.target.value) || moq))
+              }
               className="rounded-xl"
             />
-            <p className="text-xs text-muted-foreground">Minimum order quantity: {moq}</p>
+            <p className="text-xs text-muted-foreground">
+              Minimum order quantity: {moq}
+            </p>
           </div>
 
           {purchaseMode === "contribute" ? (
@@ -418,7 +477,8 @@ export function ProductPurchasePanel({
             <div className="space-y-2">
               <Label>Checkout</Label>
               <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                You will be redirected to Paystack to pay the full amount immediately.
+                You will be redirected to Paystack to pay the full amount
+                immediately.
               </div>
             </div>
           )}
@@ -430,11 +490,14 @@ export function ProductPurchasePanel({
               <div>
                 <Label htmlFor="contribution-duration">Duration</Label>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Choose a {contributionCadence} plan that finishes within 3 months.
+                  Choose a {contributionCadence} plan that finishes within 3
+                  months.
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-medium tracking-tight">{contributionPlan.durationLabel}</p>
+                <p className="font-medium tracking-tight">
+                  {contributionPlan.durationLabel}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Longer plans cost more overall.
                 </p>
@@ -530,12 +593,17 @@ export function ProductPurchasePanel({
                     title={field.label}
                     id={field.id}
                     value={customSelections[field.id] ?? ""}
-                    onChange={(event) => handleCustomSelection(field.id, event.target.value)}
+                    onChange={(event) =>
+                      handleCustomSelection(field.id, event.target.value)
+                    }
                     className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     <option value="">Choose {field.label.toLowerCase()}</option>
                     {field.options.map((option) => (
-                      <option key={`${field.id}-${option.value}`} value={option.value}>
+                      <option
+                        key={`${field.id}-${option.value}`}
+                        value={option.value}
+                      >
                         {option.label}
                       </option>
                     ))}
@@ -544,7 +612,9 @@ export function ProductPurchasePanel({
                   <Input
                     id={field.id}
                     value={customSelections[field.id] ?? ""}
-                    onChange={(event) => handleCustomSelection(field.id, event.target.value)}
+                    onChange={(event) =>
+                      handleCustomSelection(field.id, event.target.value)
+                    }
                     placeholder={`Enter ${field.label.toLowerCase()}`}
                     className="rounded-xl"
                   />
@@ -563,22 +633,31 @@ export function ProductPurchasePanel({
             <>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  Contribution uplift ({Math.round(contributionPlan.surchargeRate * 100)}%)
+                  Contribution uplift (
+                  {Math.round(contributionPlan.surchargeRate * 100)}%)
                 </span>
-                <span className="font-medium">{formatNaira(contributionPlan.surchargeAmount)}</span>
+                <span className="font-medium">
+                  {formatNaira(contributionPlan.surchargeAmount)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Plan total</span>
-                <span className="font-medium">{formatNaira(contributionPlan.adjustedTotal)}</span>
+                <span className="font-medium">
+                  {formatNaira(contributionPlan.adjustedTotal)}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Deposit to lock price</span>
+                <span className="text-muted-foreground">
+                  Deposit to lock price
+                </span>
                 <span className="font-medium text-primary">
                   {formatNaira(contributionPlan.depositAmount)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Remaining after deposit</span>
+                <span className="text-muted-foreground">
+                  Remaining after deposit
+                </span>
                 <span className="font-medium">
                   {formatNaira(contributionPlan.remainingBalance)}
                 </span>
@@ -591,14 +670,21 @@ export function ProductPurchasePanel({
               </div>
               <div className="border-t border-border/60 pt-2 flex justify-between">
                 <span className="text-muted-foreground">
-                  {CADENCE_OPTIONS.find((option) => option.value === contributionCadence)?.label} target × {contributionPlan.installmentCount}
+                  {
+                    CADENCE_OPTIONS.find(
+                      (option) => option.value === contributionCadence,
+                    )?.label
+                  }{" "}
+                  target × {contributionPlan.installmentCount}
                 </span>
                 <span className="font-display text-lg font-semibold">
-                  {formatNaira(contributionPlan.installmentAmount)}/{contributionPlan.intervalLabel}
+                  {formatNaira(contributionPlan.installmentAmount)}/
+                  {contributionPlan.intervalLabel}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Price stays locked for {priceLockDays} days after your deposit is confirmed.
+                Price stays locked for {priceLockDays} days after your deposit
+                is confirmed.
               </p>
             </>
           ) : (
@@ -611,14 +697,64 @@ export function ProductPurchasePanel({
               </div>
               <div className="border-t border-border/60 pt-2 flex justify-between">
                 <span className="text-muted-foreground">Pay now</span>
-                <span className="font-display text-lg font-semibold">{formatNaira(effectiveTotal)}</span>
+                <span className="font-display text-lg font-semibold">
+                  {formatNaira(effectiveTotal)}
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Full-payment checkout starts immediately after the order is created.
+                Full-payment checkout starts immediately after the order is
+                created.
               </p>
             </>
           )}
         </div>
+
+        {hasAcceptedTerms ? (
+          <p className="text-xs text-muted-foreground">
+            You have already agreed to the{" "}
+            <a
+              href="/terms"
+              className="font-medium text-primary hover:underline"
+            >
+              service agreement
+            </a>
+            .
+          </p>
+        ) : (
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+            <div>
+              <Label htmlFor="terms-accepted">Terms and Conditions</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Review the service agreement before you pay. The 20% commitment
+                deposit is non-refundable and each product carries its own
+                price-lock period.
+              </p>
+            </div>
+            <label
+              htmlFor="terms-accepted"
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
+            >
+              <input
+                id="terms-accepted"
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(event) => setTermsAccepted(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-muted-foreground">
+                I agree to the 20% non-refundable deposit, the applicable
+                price-lock period for this product, and the full terms in{" "}
+                <a
+                  href="/terms"
+                  className="font-medium text-primary hover:underline"
+                >
+                  the service agreement
+                </a>
+                .
+              </span>
+            </label>
+          </div>
+        )}
 
         {session ? (
           <Button

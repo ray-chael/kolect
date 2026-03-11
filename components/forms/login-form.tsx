@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { toast } from "sonner";
 
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
 
   function handleSubmit(formData: FormData) {
     const email = formData.get("email") as string;
@@ -21,7 +23,10 @@ export function LoginForm() {
         return;
       }
       toast.success("Welcome back!");
-      window.location.href = "/dashboard";
+      const callbackUrl = searchParams.get("callbackUrl");
+      const role = result.data?.user?.role;
+      const defaultDest = role === "ADMIN" ? "/admin" : "/dashboard";
+      window.location.href = callbackUrl ?? defaultDest;
     });
   }
 
@@ -52,13 +57,20 @@ export function LoginForm() {
         />
       </div>
 
-      <Button type="submit" className="w-full h-11 rounded-full font-medium tracking-wide" disabled={isPending}>
+      <Button
+        type="submit"
+        className="w-full h-11 rounded-full font-medium tracking-wide"
+        disabled={isPending}
+      >
         {isPending ? "Signing in..." : "Sign In"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <a href="/register" className="font-medium text-primary hover:text-primary/80 transition-colors">
+        <a
+          href="/register"
+          className="font-medium text-primary hover:text-primary/80 transition-colors"
+        >
           Create one
         </a>
       </p>

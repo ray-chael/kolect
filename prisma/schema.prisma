@@ -16,9 +16,11 @@ model User {
   emailVerified Boolean   @default(false)
   phone         String?   @unique
   image         String?
-  role          String    @default("EMERALD") // Abstract role per ISCE standards
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role              String    @default("EMERALD") // Abstract role per ISCE standards
+  hasAcceptedTerms  Boolean   @default(false)
+  termsAcceptedAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   sessions      Session[]
   accounts      Account[]

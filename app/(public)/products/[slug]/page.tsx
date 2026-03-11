@@ -7,6 +7,7 @@ import Image from "next/image";
 import { InstallmentCalculator } from "./installment-calculator";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
 import { coerceProductCustomFields } from "@/lib/types";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function ProductDetailPage({
   const remaining = product.markupPrice - deposit;
   const customFields = coerceProductCustomFields(product.customFields);
   const pickupLocations = await pickupLocationService.getActive();
+  const session = await getSession();
+  const hasAcceptedTerms = session?.user.hasAcceptedTerms ?? false;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
@@ -134,6 +137,7 @@ export default async function ProductDetailPage({
             moq={product.moq}
             totalPrice={product.markupPrice}
             priceLockDays={product.priceLockDays}
+            hasAcceptedTerms={hasAcceptedTerms}
           />
 
           {product.expectedProcurementAt && (
