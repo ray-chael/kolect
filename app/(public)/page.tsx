@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { HeroCTA } from "@/components/shared/hero-cta";
 import { productService } from "@/lib/services/product.service";
 import { formatNaira } from "@/lib/types";
@@ -44,7 +45,9 @@ export default async function HomePage() {
       <section className="border-t border-border/40 bg-muted/20">
         <div className="mx-auto max-w-7xl px-6 py-20">
           <div className="text-center mb-14">
-            <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">The Process</p>
+            <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
+              The Process
+            </p>
             <h2 className="font-display text-3xl md:text-4xl tracking-tight">
               How &ldquo;Contribute to Buy&rdquo; Works
             </h2>
@@ -72,11 +75,16 @@ export default async function HomePage() {
                 desc: "Once fully paid, we procure and deliver to your door",
               },
             ].map((item) => (
-              <div key={item.step} className="group text-center p-6 rounded-2xl hover:bg-card transition-colors duration-300">
+              <div
+                key={item.step}
+                className="group text-center p-6 rounded-2xl hover:bg-card transition-colors duration-300"
+              >
                 <span className="font-display text-4xl text-primary/20 group-hover:text-primary/40 transition-colors duration-300">
                   {item.step}
                 </span>
-                <h3 className="mt-2 font-semibold tracking-tight">{item.title}</h3>
+                <h3 className="mt-2 font-semibold tracking-tight">
+                  {item.title}
+                </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {item.desc}
                 </p>
@@ -92,7 +100,9 @@ export default async function HomePage() {
           <div className="mx-auto max-w-7xl px-6 py-20">
             <div className="flex items-end justify-between mb-10">
               <div>
-                <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Featured</p>
+                <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
+                  Featured
+                </p>
                 <h2 className="font-display text-3xl md:text-4xl tracking-tight">
                   Our Collection
                 </h2>
@@ -111,7 +121,35 @@ export default async function HomePage() {
                   href={`/products/${product.slug}`}
                   className="group rounded-2xl border border-border/60 bg-card p-5 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
                 >
-                  <div className="mb-4 aspect-square rounded-xl bg-muted/60 overflow-hidden" />
+                  <div className="mb-4 aspect-square rounded-xl bg-muted/60 overflow-hidden relative">
+                    {product.images[0] ? (
+                      <Image
+                        src={product.images[0]}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="40"
+                          height="40"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect width="18" height="18" x="3" y="3" rx="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
                   <h3 className="font-semibold tracking-tight group-hover:text-primary transition-colors duration-300">
                     {product.name}
                   </h3>
