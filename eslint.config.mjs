@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // React Email templates require inline styles — disable the rule for the emails directory.
+  {
+    files: ["emails/**/*.tsx"],
+    rules: {
+      "@next/next/no-css-inline-styles": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

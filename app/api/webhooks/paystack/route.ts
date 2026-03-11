@@ -3,27 +3,22 @@ import crypto from "crypto";
 import { paymentService } from "@/lib/services/payment.service";
 import { orderService } from "@/lib/services/order.service";
 import { notificationService } from "@/lib/services/notification.service";
+import { emailService } from "@/lib/services/email.service";
 import type { PaystackWebhookEvent } from "@/lib/types";
 import { formatNaira } from "@/lib/types";
 
 /**
  * Verify Paystack webhook signature using HMAC SHA-512
  */
-function verifyPaystackSignature(
-  body: string,
-  signature: string
-): boolean {
+function verifyPaystackSignature(body: string, signature: string): boolean {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) return false;
 
-  const hash = crypto
-    .createHmac("sha512", secret)
-    .update(body)
-    .digest("hex");
+  const hash = crypto.createHmac("sha512", secret).update(body).digest("hex");
 
   return crypto.timingSafeEqual(
     Buffer.from(hash, "hex"),
-    Buffer.from(signature, "hex")
+    Buffer.from(signature, "hex"),
   );
 }
 
@@ -34,10 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Validate signature
     if (!signature || !verifyPaystackSignature(body, signature)) {
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const event: PaystackWebhookEvent = JSON.parse(body);
@@ -53,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Step 1: Process the webhook (idempotent)
     const result = await paymentService.processWebhook(
       reference,
-      event.data as unknown as Record<string, unknown>
+      event.data as unknown as Record<string, unknown>,
     );
 
     if (!result || result.alreadyProcessed) {
@@ -64,7 +56,7 @@ export async function POST(request: NextRequest) {
     const { transaction } = result;
     const paymentResult = await orderService.processPayment(
       transaction.orderId,
-      amountKobo
+      amountKobo,
     );
 
     // Step 3: Queue notifications
@@ -76,6 +68,11 @@ export async function POST(request: NextRequest) {
         type: "DEPOSIT_CONFIRMED",
         message: `Your deposit of ${formatNaira(amountKobo)} has been confirmed. Your price is now locked!`,
       });
+      emailService
+        .send("DEPOSIT_CONFIRMED", transaction.userId, transaction.orderId, {
+          amountKobo,
+        })
+        .catch(console.error);
     }
 
     if (paymentResult.isFullyPaid) {
@@ -86,6 +83,9 @@ export async function POST(request: NextRequest) {
         type: "ORDER_FULLY_PAID",
         message: `Your order is fully paid (${formatNaira(paymentResult.order.totalAmount)}). We'll begin procurement soon!`,
       });
+      emailService
+        .send("ORDER_FULLY_PAID", transaction.userId, transaction.orderId)
+        .catch(console.error);
     } else {
       await notificationService.queue({
         userId: transaction.userId,
@@ -94,6 +94,11 @@ export async function POST(request: NextRequest) {
         type: "PAYMENT_RECEIVED",
         message: `Payment of ${formatNaira(amountKobo)} received. Balance remaining: ${formatNaira(paymentResult.order.totalAmount - paymentResult.order.amountPaid)}.`,
       });
+      emailService
+        .send("PAYMENT_RECEIVED", transaction.userId, transaction.orderId, {
+          amountKobo,
+        })
+        .catch(console.error);
     }
 
     return NextResponse.json({ received: true });

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { AddressManager } from "@/components/forms/address-manager";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProfilePage() {
   const session = await requireSession().catch(() => null);
   if (!session) redirect("/login");

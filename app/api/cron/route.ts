@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { orderService } from "@/lib/services/order.service";
 import { notificationService } from "@/lib/services/notification.service";
+import { emailService } from "@/lib/services/email.service";
 import { formatNaira } from "@/lib/types";
 import { PRICE_LOCK_WARNING_DAYS } from "@/lib/consts";
 import { prisma } from "@/lib/db";
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
         type: "ORDER_EXPIRED",
         message: `Your order for ${order.product.name} has expired. Price lock period ended. Please contact us to discuss options.`,
       });
+      emailService
+        .send("ORDER_EXPIRED", order.userId, order.id)
+        .catch(console.error);
     }
   }
 
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
 
   for (const order of ordersNearExpiry) {
     const daysLeft = Math.ceil(
-      (order.priceLockExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      (order.priceLockExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
     );
 
     // Check if we already sent a warning for this order recently
@@ -79,14 +83,16 @@ export async function GET(request: NextRequest) {
         type: "PRICE_LOCK_WARNING",
         message: `Your price lock for ${order.product.name} expires in ${daysLeft} days. Balance remaining: ${formatNaira(order.totalAmount - order.amountPaid)}. Pay now to keep your locked price!`,
       });
+      emailService
+        .send("PRICE_LOCK_WARNING", order.userId, order.id)
+        .catch(console.error);
       results.warningsSent++;
     }
   }
 
-  // 3. Process queued notifications (placeholder — actual sending logic goes here)
+  // 3. Process queued notifications (TODO: Integrate with Termii/WhatsApp Business API)
   const queuedNotifications = await notificationService.getQueued(50);
   results.notificationsProcessed = queuedNotifications.length;
-  // TODO: Integrate with Termii/WhatsApp Business API to send queued messages
 
   return NextResponse.json({
     success: true,

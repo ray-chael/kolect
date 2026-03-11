@@ -3,13 +3,19 @@
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { UserDropdown } from "@/components/shared/user-dropdown";
+import { NotificationBell } from "@/components/shared/notification-bell";
 
 interface ProtectedHeaderClientProps {
   userName: string;
   userEmail: string;
+  initialUnreadCount: number;
 }
 
-export function ProtectedHeaderClient({ userName, userEmail }: ProtectedHeaderClientProps) {
+export function ProtectedHeaderClient({
+  userName,
+  userEmail,
+  initialUnreadCount,
+}: ProtectedHeaderClientProps) {
   const pathname = usePathname();
 
   // Admin routes have their own header/layout
@@ -18,7 +24,10 @@ export function ProtectedHeaderClient({ userName, userEmail }: ProtectedHeaderCl
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <a href="/dashboard" className="font-display text-xl tracking-tight text-foreground">
+        <a
+          href="/dashboard"
+          className="font-display text-xl tracking-tight text-foreground"
+        >
           Ade&apos;s Kolekt
         </a>
         <nav className="flex items-center gap-5">
@@ -29,6 +38,7 @@ export function ProtectedHeaderClient({ userName, userEmail }: ProtectedHeaderCl
             Shop
           </a>
           <ThemeToggle />
+          <NotificationBell initialUnreadCount={initialUnreadCount} />
           <UserDropdown name={userName} email={userEmail} />
         </nav>
       </div>

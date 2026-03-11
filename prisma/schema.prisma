@@ -275,6 +275,7 @@ model Notification {
   message   String
   status    NotificationStatus  @default(QUEUED)
   sentAt    DateTime?
+  readAt    DateTime?           // null = unread (in-app)
   createdAt DateTime            @default(now())
 
   @@index([userId])

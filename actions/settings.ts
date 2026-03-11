@@ -27,18 +27,26 @@ const DEFAULTS: SystemSetting[] = [
 // ─── Public read (server components can call this) ────────────
 
 export async function getSystemSettings(): Promise<SystemSetting[]> {
-  const rows = await prisma.systemSetting.findMany();
-  const map = new Map(rows.map((r) => [r.key, r.value]));
+  try {
+    const rows = await prisma.systemSetting.findMany();
+    const map = new Map(rows.map((r) => [r.key, r.value]));
 
-  return DEFAULTS.map((d) => ({
-    ...d,
-    value: map.has(d.key) ? (map.get(d.key) as string) : d.value,
-  }));
+    return DEFAULTS.map((d) => ({
+      ...d,
+      value: map.has(d.key) ? (map.get(d.key) as string) : d.value,
+    }));
+  } catch {
+    return DEFAULTS;
+  }
 }
 
 export async function getSettingValue(key: string): Promise<string> {
-  const row = await prisma.systemSetting.findUnique({ where: { key } });
-  if (row) return row.value;
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key } });
+    if (row) return row.value;
+  } catch {
+    // table may not exist yet
+  }
   return DEFAULTS.find((d) => d.key === key)?.value ?? "";
 }
 
@@ -50,20 +58,22 @@ export async function updateSystemSettings(
   try {
     await requireRole("CRIMSON");
 
-    await prisma.$transaction(
-      Object.entries(updates).map(([key, value]) => {
-        const def = DEFAULTS.find((d) => d.key === key);
-        if (!def) return prisma.$executeRaw`SELECT 1`; // skip unknown keys
+    const ops = Object.entries(updates)
+      .filter(([key]) => DEFAULTS.some((d) => d.key === key))
+      .map(([key, value]) => {
+        const def = DEFAULTS.find((d) => d.key === key)!;
         return prisma.systemSetting.upsert({
           where: { key },
           update: { value },
           create: { key, value, type: def.type, label: def.label },
         });
-      })
-    );
+      });
+
+    if (ops.length > 0) await prisma.$transaction(ops);
 
     return { success: true, message: "" };
-  } catch {
+  } catch (e) {
+    console.error("[updateSystemSettings]", e);
     return { success: false, message: "Failed to save settings" };
   }
 }
