@@ -56,7 +56,7 @@ export default async function OrderDetailPage({
   const isPickup = order.deliveryMethod === "PICKUP";
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-8">
         <a href="/orders" className="text-sm text-muted-foreground hover:text-primary transition-colors">
           &larr; Back to orders
@@ -65,7 +65,7 @@ export default async function OrderDetailPage({
 
       <div className="space-y-8">
         {/* Order Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl tracking-tight">{order.product.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
