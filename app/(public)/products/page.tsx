@@ -8,7 +8,7 @@ export default async function ProductsPage() {
   const products = await productService.getAll();
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-10">
         <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Browse</p>
         <h1 className="font-display text-4xl tracking-tight">Our Collection</h1>

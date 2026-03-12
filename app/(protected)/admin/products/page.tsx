@@ -7,8 +7,8 @@ export default async function AdminProductsPage() {
   const products = await productService.getAll();
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
-      <div className="flex items-center justify-between mb-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Inventory</p>
           <h1 className="font-display text-3xl tracking-tight">Products</h1>
@@ -24,8 +24,8 @@ export default async function AdminProductsPage() {
         </a>
       </div>
 
-      <div className="rounded-2xl border border-border/60 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-2xl border border-border/60 overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="border-b border-border/40 bg-muted/30">
               <th className="px-5 py-3.5 text-left text-xs tracking-[0.1em] uppercase font-medium text-muted-foreground">Name</th>

@@ -14,7 +14,7 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden grain">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-warm/5 pointer-events-none" />
-        <div className="mx-auto max-w-7xl px-6 py-24 md:py-36 relative">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-24 md:py-36 relative">
           <div className="max-w-3xl">
             <p className="text-sm tracking-[0.2em] uppercase text-primary mb-4">
               Curated &bull; Affordable &bull; Delivered
@@ -43,7 +43,7 @@ export default async function HomePage() {
 
       {/* How It Works */}
       <section className="border-t border-border/40 bg-muted/20">
-        <div className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 sm:py-20">
           <div className="text-center mb-14">
             <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
               The Process
@@ -52,7 +52,7 @@ export default async function HomePage() {
               How &ldquo;Contribute to Buy&rdquo; Works
             </h2>
           </div>
-          <div className="grid gap-8 md:grid-cols-4">
+          <div className="grid gap-8 grid-cols-2 md:grid-cols-4">
             {[
               {
                 step: "01",
@@ -97,8 +97,8 @@ export default async function HomePage() {
       {/* Featured Products */}
       {featured.length > 0 && (
         <section className="border-t border-border/40">
-          <div className="mx-auto max-w-7xl px-6 py-20">
-            <div className="flex items-end justify-between mb-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 sm:py-20">
+            <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
               <div>
                 <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
                   Featured

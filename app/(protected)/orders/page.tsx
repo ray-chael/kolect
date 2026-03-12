@@ -49,7 +49,7 @@ export default async function OrdersPage() {
   const orders = await orderService.getByUser(session.user.id);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-10">
         <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Orders</p>
         <h1 className="font-display text-4xl tracking-tight">My Orders</h1>
@@ -85,7 +85,7 @@ export default async function OrdersPage() {
                 href={`/orders/${order.id}`}
                 className="block rounded-2xl border border-border/60 bg-card p-5 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="font-semibold tracking-tight">{order.product.name}</h3>
                     <p className="mt-0.5 text-sm text-muted-foreground">

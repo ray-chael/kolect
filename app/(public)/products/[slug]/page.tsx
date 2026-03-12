@@ -38,7 +38,7 @@ export default async function ProductDetailPage({
   const speedafEnabled = (await getSettingValue("enableSpeedaf")) === "true";
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
       <a
         href="/products"
         className="text-sm text-muted-foreground hover:text-primary transition-colors"
