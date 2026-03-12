@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { z } from "zod/v4";
 import type { ActionResult } from "@/lib/types";
+import type { SavedAddressSummary } from "@/lib/types";
 
 const addressSchema = z.object({
   label: z.string().min(1).max(50).default("Home"),
@@ -144,5 +145,31 @@ export async function setDefaultAddress(id: string): Promise<ActionResult> {
     return { success: true, message: "" };
   } catch {
     return { success: false, message: "Failed to set default address" };
+  }
+}
+
+export async function getUserAddresses(): Promise<
+  ActionResult<SavedAddressSummary[]>
+> {
+  try {
+    const session = await requireSession();
+    const addresses = await prisma.deliveryAddress.findMany({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        label: true,
+        recipientName: true,
+        phone: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        state: true,
+        isDefault: true,
+      },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    });
+    return { success: true, message: "", data: addresses };
+  } catch {
+    return { success: false, message: "Failed to load addresses" };
   }
 }

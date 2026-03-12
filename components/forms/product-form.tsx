@@ -138,10 +138,13 @@ export function ProductForm() {
       <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl tracking-tight">Videos</h2>
-          <span className="text-xs text-muted-foreground">{videos.length}/2</span>
+          <span className="text-xs text-muted-foreground">
+            {videos.length}/2
+          </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Upload up to 2 product videos to Cloudinary, or reuse one already in your gallery.
+          Upload up to 2 product videos to Cloudinary, or reuse one already in
+          your gallery.
         </p>
         <CloudinaryMediaManager
           value={videos}
@@ -166,7 +169,9 @@ export function ProductForm() {
               placeholder="e.g. 150000000"
               className="rounded-xl"
             />
-            <p className="text-xs text-muted-foreground">Procurement cost in kobo (100 kobo = ₦1)</p>
+            <p className="text-xs text-muted-foreground">
+              Procurement cost in kobo (100 kobo = ₦1)
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -180,7 +185,9 @@ export function ProductForm() {
               placeholder="e.g. 180000000"
               className="rounded-xl"
             />
-            <p className="text-xs text-muted-foreground">Customer-facing price in kobo</p>
+            <p className="text-xs text-muted-foreground">
+              Customer-facing price in kobo
+            </p>
           </div>
         </div>
 
@@ -210,6 +217,23 @@ export function ProductForm() {
             />
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="weightKg">Weight (kg)</Label>
+          <Input
+            id="weightKg"
+            name="weightKg"
+            type="number"
+            required
+            min={0.001}
+            step={0.001}
+            placeholder="e.g. 0.5"
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">
+            Parcel weight in kilograms — used for logistics pricing
+          </p>
+        </div>
       </div>
 
       <ProductOptionsBuilder
@@ -236,7 +260,9 @@ export function ProductForm() {
 
         {isPreorder && (
           <div className="space-y-2">
-            <Label htmlFor="expectedProcurementAt">Expected Procurement Date</Label>
+            <Label htmlFor="expectedProcurementAt">
+              Expected Procurement Date
+            </Label>
             <Input
               id="expectedProcurementAt"
               name="expectedProcurementAt"

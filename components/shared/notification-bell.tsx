@@ -7,6 +7,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/actions/notifications";
+import { Button } from "../ui/button";
 
 interface Notification {
   id: string;
@@ -32,7 +33,9 @@ function relativeTime(date: Date): string {
   return `${d}d ago`;
 }
 
-export function NotificationBell({ initialUnreadCount }: NotificationBellProps) {
+export function NotificationBell({
+  initialUnreadCount,
+}: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -76,7 +79,7 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
   async function handleMarkRead(id: string) {
     await markNotificationRead(id);
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, readAt: new Date() } : n))
+      prev.map((n) => (n.id === id ? { ...n, readAt: new Date() } : n)),
     );
     setUnreadCount((c) => Math.max(0, c - 1));
   }
@@ -84,14 +87,16 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
   async function handleMarkAll() {
     startTransition(async () => {
       await markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, readAt: new Date() })));
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, readAt: new Date() })),
+      );
       setUnreadCount(0);
     });
   }
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <Button
         onClick={handleOpen}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         aria-haspopup="menu"
@@ -104,7 +109,7 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -113,7 +118,9 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-sm font-semibold text-foreground">Notifications</span>
+            <span className="text-sm font-semibold text-foreground">
+              Notifications
+            </span>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAll}
@@ -137,11 +144,12 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
               </p>
             ) : (
               notifications.map((n) => (
-                <button
+                <Button
                   key={n.id}
                   onClick={() => {
                     if (!n.readAt) handleMarkRead(n.id);
-                    if (n.orderId) window.location.href = `/orders/${n.orderId}`;
+                    if (n.orderId)
+                      window.location.href = `/orders/${n.orderId}`;
                   }}
                   className={`flex w-full flex-col gap-1 border-b border-border/50 px-4 py-3 text-left transition-colors last:border-0 hover:bg-accent/50 ${
                     !n.readAt ? "bg-primary/5" : ""
@@ -164,7 +172,7 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
                   <span className="text-[11px] text-muted-foreground/70">
                     {relativeTime(n.createdAt)}
                   </span>
-                </button>
+                </Button>
               ))
             )}
           </div>

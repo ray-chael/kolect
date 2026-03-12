@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "products" ADD COLUMN     "weightKg" DOUBLE PRECISION NOT NULL DEFAULT 0;

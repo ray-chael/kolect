@@ -13,10 +13,15 @@ interface SettingsFormProps {
   settings: SystemSetting[];
 }
 
-const GROUPS: { title: string; keys: string[] }[] = [
+const GROUPS: { title: string; description?: string; keys: string[] }[] = [
   {
     title: "Payment Rules",
-    keys: ["depositPercent", "minInstallmentMonths", "maxInstallmentMonths", "defaultPriceLockDays"],
+    keys: [
+      "depositPercent",
+      "minInstallmentMonths",
+      "maxInstallmentMonths",
+      "defaultPriceLockDays",
+    ],
   },
   {
     title: "Contact & Support",
@@ -25,6 +30,23 @@ const GROUPS: { title: string; keys: string[] }[] = [
   {
     title: "Store Operations",
     keys: ["storeActive", "announcementBanner"],
+  },
+  {
+    title: "Speedaf Logistics",
+    description:
+      "Enable Speedaf to offer third-party doorstep delivery. Credentials are provided by Speedaf upon account setup.",
+    keys: [
+      "enableSpeedaf",
+      "speedafAppCode",
+      "speedafSecretKey",
+      "speedafCustomerCode",
+      "speedafPlatformSource",
+      "speedafSenderName",
+      "speedafSenderPhone",
+      "speedafSenderAddress",
+      "speedafSenderCity",
+      "speedafSenderState",
+    ],
   },
 ];
 
@@ -61,6 +83,11 @@ export function SettingsForm({ settings }: SettingsFormProps) {
           <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground">
             {group.title}
           </h2>
+          {group.description && (
+            <p className="text-xs text-muted-foreground -mt-3">
+              {group.description}
+            </p>
+          )}
 
           <div className="grid gap-5 sm:grid-cols-2">
             {group.keys.map((key) => {
@@ -73,14 +100,17 @@ export function SettingsForm({ settings }: SettingsFormProps) {
 
                   {setting.type === "boolean" ? (
                     <div className="flex items-center gap-3 h-10">
-                      <button
+                      <Button
                         id={key}
                         type="button"
                         role="switch"
                         title={setting.label}
                         aria-checked={values[key] === "true"}
                         onClick={() =>
-                          handleChange(key, values[key] === "true" ? "false" : "true")
+                          handleChange(
+                            key,
+                            values[key] === "true" ? "false" : "true",
+                          )
                         }
                         disabled={isPending}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -89,10 +119,12 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                       >
                         <span
                           className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                            values[key] === "true" ? "translate-x-5" : "translate-x-0"
+                            values[key] === "true"
+                              ? "translate-x-5"
+                              : "translate-x-0"
                           }`}
                         />
-                      </button>
+                      </Button>
                       <span className="text-sm text-muted-foreground">
                         {values[key] === "true" ? "Enabled" : "Disabled"}
                       </span>
@@ -109,7 +141,9 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   ) : (
                     <Input
                       id={key}
-                      type={key.toLowerCase().includes("email") ? "email" : "text"}
+                      type={
+                        key.toLowerCase().includes("email") ? "email" : "text"
+                      }
                       value={values[key]}
                       onChange={(e) => handleChange(key, e.target.value)}
                       placeholder={`Enter ${setting.label.toLowerCase()}`}

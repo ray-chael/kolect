@@ -14,14 +14,110 @@ export interface SystemSetting {
 }
 
 const DEFAULTS: SystemSetting[] = [
-  { key: "depositPercent",        value: "30",    type: "number",  label: "Deposit Percentage (%)" },
-  { key: "minInstallmentMonths",  value: "1",     type: "number",  label: "Min Installment Months" },
-  { key: "maxInstallmentMonths",  value: "12",    type: "number",  label: "Max Installment Months" },
-  { key: "defaultPriceLockDays",  value: "60",    type: "number",  label: "Default Price Lock Days" },
-  { key: "whatsappNumber",        value: "",      type: "string",  label: "WhatsApp Support Number" },
-  { key: "supportEmail",          value: "",      type: "string",  label: "Support Email Address" },
-  { key: "storeActive",           value: "true",  type: "boolean", label: "Store Active (accept orders)" },
-  { key: "announcementBanner",    value: "",      type: "string",  label: "Announcement Banner Text" },
+  {
+    key: "depositPercent",
+    value: "30",
+    type: "number",
+    label: "Deposit Percentage (%)",
+  },
+  {
+    key: "minInstallmentMonths",
+    value: "1",
+    type: "number",
+    label: "Min Installment Months",
+  },
+  {
+    key: "maxInstallmentMonths",
+    value: "12",
+    type: "number",
+    label: "Max Installment Months",
+  },
+  {
+    key: "defaultPriceLockDays",
+    value: "60",
+    type: "number",
+    label: "Default Price Lock Days",
+  },
+  {
+    key: "whatsappNumber",
+    value: "",
+    type: "string",
+    label: "WhatsApp Support Number",
+  },
+  {
+    key: "supportEmail",
+    value: "",
+    type: "string",
+    label: "Support Email Address",
+  },
+  {
+    key: "storeActive",
+    value: "true",
+    type: "boolean",
+    label: "Store Active (accept orders)",
+  },
+  {
+    key: "announcementBanner",
+    value: "",
+    type: "string",
+    label: "Announcement Banner Text",
+  },
+  // ─── Speedaf Logistics ────────────────────────────────────────
+  {
+    key: "enableSpeedaf",
+    value: "false",
+    type: "boolean",
+    label: "Enable Speedaf Delivery",
+  },
+  {
+    key: "speedafAppCode",
+    value: "",
+    type: "string",
+    label: "Speedaf App Code",
+  },
+  {
+    key: "speedafSecretKey",
+    value: "",
+    type: "string",
+    label: "Speedaf Secret Key (8 chars)",
+  },
+  {
+    key: "speedafCustomerCode",
+    value: "",
+    type: "string",
+    label: "Speedaf Customer Code",
+  },
+  {
+    key: "speedafPlatformSource",
+    value: "",
+    type: "string",
+    label: "Speedaf Platform Source",
+  },
+  { key: "speedafSenderName", value: "", type: "string", label: "Sender Name" },
+  {
+    key: "speedafSenderPhone",
+    value: "",
+    type: "string",
+    label: "Sender Phone",
+  },
+  {
+    key: "speedafSenderAddress",
+    value: "",
+    type: "string",
+    label: "Sender Address",
+  },
+  {
+    key: "speedafSenderCity",
+    value: "Lagos",
+    type: "string",
+    label: "Sender City",
+  },
+  {
+    key: "speedafSenderState",
+    value: "Lagos",
+    type: "string",
+    label: "Sender State",
+  },
 ];
 
 // ─── Public read (server components can call this) ────────────

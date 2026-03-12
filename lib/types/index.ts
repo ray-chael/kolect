@@ -97,6 +97,18 @@ export interface PickupLocationSummary {
   logisticsProvider: LogisticsProvider;
 }
 
+export interface SavedAddressSummary {
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  isDefault: boolean;
+}
+
 export function coerceProductCustomFields(
   value: unknown,
 ): ProductCustomField[] {

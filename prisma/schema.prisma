@@ -147,6 +147,7 @@ model Product {
   colors                String[]      @default([])
   sizes                 String[]      @default([])
   customFields          Json          @default("[]")
+  weightKg              Float         @default(0) // Parcel weight in kilograms (0 = not set)
   originalCost          Int           // Source cost in kobo
   markupPrice           Int           // Selling price in kobo
   moq                   Int           @default(1)

@@ -4,13 +4,23 @@ import { useMemo, useState, useTransition } from "react";
 import { createOrder } from "@/actions/orders";
 import { initiatePayment } from "@/actions/orders";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSession } from "@/lib/auth-client";
 import {
   formatNaira,
   type PickupLocationSummary,
   type ProductCustomField,
+  type SavedAddressSummary,
 } from "@/lib/types";
 import {
   calculateContributionPlan,
@@ -28,6 +38,46 @@ const CADENCE_OPTIONS: Array<{ value: ContributionCadence; label: string }> = [
   { value: "monthly", label: "Monthly" },
 ];
 
+const NIGERIAN_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
+
 interface ProductPurchasePanelProps {
   productId: string;
   productName: string;
@@ -35,10 +85,12 @@ interface ProductPurchasePanelProps {
   sizes: string[];
   customFields: ProductCustomField[];
   pickupLocations: PickupLocationSummary[];
+  savedAddresses: SavedAddressSummary[];
   moq: number;
   totalPrice: number;
   priceLockDays: number;
   hasAcceptedTerms: boolean;
+  speedafEnabled: boolean;
 }
 
 export function ProductPurchasePanel({
@@ -48,10 +100,12 @@ export function ProductPurchasePanel({
   sizes,
   customFields,
   pickupLocations,
+  savedAddresses,
   moq,
   totalPrice,
   priceLockDays,
   hasAcceptedTerms,
+  speedafEnabled,
 }: ProductPurchasePanelProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
@@ -74,7 +128,16 @@ export function ProductPurchasePanel({
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+    savedAddresses.find((a) => a.isDefault)?.id ??
+      savedAddresses[0]?.id ??
+      "new",
+  );
+  const [addressLabel, setAddressLabel] = useState("Home");
   const [termsAccepted, setTermsAccepted] = useState(hasAcceptedTerms);
+  const [logisticsProvider, setLogisticsProvider] = useState<
+    "INTERNAL" | "SPEEDAF"
+  >("INTERNAL");
   const [customSelections, setCustomSelections] = useState<
     Record<string, string>
   >({});
@@ -107,6 +170,10 @@ export function ProductPurchasePanel({
       return pickupLocationId ? [] : ["Pickup location"];
     }
 
+    if (selectedAddressId !== "new") {
+      return [];
+    }
+
     return [
       { label: "Recipient name", value: recipientName },
       { label: "Phone", value: phone },
@@ -123,6 +190,7 @@ export function ProductPurchasePanel({
     phone,
     pickupLocationId,
     recipientName,
+    selectedAddressId,
     state,
   ]);
 
@@ -169,12 +237,17 @@ export function ProductPurchasePanel({
     formData.set("termsAccepted", String(termsAccepted));
     formData.set("deliveryMethod", deliveryMethod);
     formData.set("pickupLocationId", pickupLocationId);
-    formData.set("recipientName", recipientName);
-    formData.set("phone", phone);
-    formData.set("addressLine1", addressLine1);
-    formData.set("addressLine2", addressLine2);
-    formData.set("city", city);
-    formData.set("state", state);
+    if (deliveryMethod === "DELIVERY" && selectedAddressId !== "new") {
+      formData.set("addressId", selectedAddressId);
+    } else {
+      formData.set("recipientName", recipientName);
+      formData.set("phone", phone);
+      formData.set("addressLine1", addressLine1);
+      formData.set("addressLine2", addressLine2);
+      formData.set("city", city);
+      formData.set("state", state);
+      formData.set("addressLabel", addressLabel);
+    }
     formData.set("purchaseMode", purchaseMode);
     formData.set("installmentMonths", String(selectedInstallmentMonths));
     formData.set("contributionCadence", contributionCadence);
@@ -182,6 +255,7 @@ export function ProductPurchasePanel({
     formData.set("selectedColor", selectedColor);
     formData.set("selectedSize", selectedSize);
     formData.set("customSelections", JSON.stringify(customSelections));
+    formData.set("logisticsProvider", logisticsProvider);
 
     startTransition(async () => {
       const result = await createOrder(formData);
@@ -327,80 +401,204 @@ export function ProductPurchasePanel({
           </div>
 
           {deliveryMethod === "DELIVERY" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="recipient-name">Recipient name</Label>
-                <Input
-                  id="recipient-name"
-                  value={recipientName}
-                  onChange={(event) => setRecipientName(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="address-line-1">Address line 1</Label>
-                <Input
-                  id="address-line-1"
-                  value={addressLine1}
-                  onChange={(event) => setAddressLine1(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="address-line-2">Address line 2</Label>
-                <Input
-                  id="address-line-2"
-                  value={addressLine2}
-                  onChange={(event) => setAddressLine2(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  value={state}
-                  onChange={(event) => setState(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
+            <div className="space-y-4">
+              {savedAddresses.length > 0 && (
+                <RadioGroup
+                  value={selectedAddressId}
+                  onValueChange={setSelectedAddressId}
+                  className="space-y-2"
+                >
+                  {savedAddresses.map((addr) => (
+                    <label
+                      key={addr.id}
+                      onClick={() => setSelectedAddressId(addr.id)}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                        selectedAddressId === addr.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border/60 bg-background hover:border-primary/30"
+                      }`}
+                    >
+                      <RadioGroupItem value={addr.id} className="mt-1" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {addr.label}
+                          </span>
+                          {addr.isDefault && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {addr.recipientName} · {addr.phone}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {addr.addressLine1}
+                          {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
+                          {`, ${addr.city}, ${addr.state}`}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                  <label
+                    onClick={() => setSelectedAddressId("new")}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                      selectedAddressId === "new"
+                        ? "border-primary bg-primary/5"
+                        : "border-border/60 bg-background hover:border-primary/30"
+                    }`}
+                  >
+                    <RadioGroupItem value="new" />
+                    <span className="text-sm font-medium">
+                      Use a new address
+                    </span>
+                  </label>
+                </RadioGroup>
+              )}
+
+              {selectedAddressId === "new" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="address-label">Save address as</Label>
+                    <Input
+                      id="address-label"
+                      value={addressLabel}
+                      onChange={(event) => setAddressLabel(event.target.value)}
+                      placeholder="Home, Office, etc."
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient-name">Recipient name</Label>
+                    <Input
+                      id="recipient-name"
+                      value={recipientName}
+                      onChange={(event) => setRecipientName(event.target.value)}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="address-line-1">Address line 1</Label>
+                    <Input
+                      id="address-line-1"
+                      value={addressLine1}
+                      onChange={(event) => setAddressLine1(event.target.value)}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="address-line-2">
+                      Address line 2 (optional)
+                    </Label>
+                    <Input
+                      id="address-line-2"
+                      value={addressLine2}
+                      onChange={(event) => setAddressLine2(event.target.value)}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={city}
+                      onChange={(event) => setCity(event.target.value)}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Select
+                      value={state}
+                      onValueChange={(v) => setState(v ?? "")}
+                    >
+                      <SelectTrigger id="state" className="w-full rounded-xl">
+                        <SelectValue placeholder="Choose a state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NIGERIAN_STATES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {speedafEnabled && (
+                <div className="space-y-2">
+                  <Label>Delivery provider</Label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setLogisticsProvider("INTERNAL")}
+                      className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                        logisticsProvider === "INTERNAL"
+                          ? "border-primary bg-primary/5"
+                          : "border-border/60 bg-background hover:border-primary/30"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold tracking-tight">
+                        Standard delivery
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Handled in-house by our team.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogisticsProvider("SPEEDAF")}
+                      className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                        logisticsProvider === "SPEEDAF"
+                          ? "border-primary bg-primary/5"
+                          : "border-border/60 bg-background hover:border-primary/30"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold tracking-tight">
+                        Speedaf Express
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Fast door-to-door delivery via Speedaf courier.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="pickup-location">Pickup location</Label>
-                <select
-                  id="pickup-location"
-                  title="Pickup location"
+                <Select
                   value={pickupLocationId}
-                  onChange={(event) => setPickupLocationId(event.target.value)}
-                  className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm"
+                  onValueChange={(v) => setPickupLocationId(v ?? "")}
                 >
-                  <option value="">Choose a pickup location</option>
-                  {pickupLocations.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name} - {location.city}, {location.state}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    id="pickup-location"
+                    className="w-full rounded-xl"
+                  >
+                    <SelectValue placeholder="Choose a pickup location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pickupLocations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name} - {location.city}, {location.state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {selectedPickupLocation && (
@@ -589,25 +787,28 @@ export function ProductPurchasePanel({
                 </Label>
 
                 {field.type === "select" ? (
-                  <select
-                    title={field.label}
-                    id={field.id}
+                  <Select
                     value={customSelections[field.id] ?? ""}
-                    onChange={(event) =>
-                      handleCustomSelection(field.id, event.target.value)
+                    onValueChange={(v) =>
+                      handleCustomSelection(field.id, v ?? "")
                     }
-                    className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <option value="">Choose {field.label.toLowerCase()}</option>
-                    {field.options.map((option) => (
-                      <option
-                        key={`${field.id}-${option.value}`}
-                        value={option.value}
-                      >
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id={field.id} className="w-full rounded-xl">
+                      <SelectValue
+                        placeholder={`Choose ${field.label.toLowerCase()}`}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options.map((option) => (
+                        <SelectItem
+                          key={`${field.id}-${option.value}`}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input
                     id={field.id}
@@ -734,12 +935,11 @@ export function ProductPurchasePanel({
               htmlFor="terms-accepted"
               className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
             >
-              <input
+              <Checkbox
                 id="terms-accepted"
-                type="checkbox"
                 checked={termsAccepted}
-                onChange={(event) => setTermsAccepted(event.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                onCheckedChange={(v) => setTermsAccepted(v === true)}
+                className="mt-0.5"
               />
               <span className="text-muted-foreground">
                 I agree to the 20% non-refundable deposit, the applicable

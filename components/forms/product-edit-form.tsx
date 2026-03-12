@@ -23,6 +23,7 @@ interface Product {
   customFields: ProductCustomField[];
   originalCost: number;
   markupPrice: number;
+  weightKg: number;
   moq: number;
   isPreorder: boolean;
   expectedProcurementAt: Date | null;
@@ -129,7 +130,7 @@ export function ProductEditForm({ product }: { product: Product }) {
 
         <div className="space-y-2">
           <Label htmlFor="categorySelect">Category</Label>
-                  <select
+          <select
             title="Select a category for this product (optional)"
             id="categorySelect"
             value={categoryId}
@@ -159,10 +160,13 @@ export function ProductEditForm({ product }: { product: Product }) {
       <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl tracking-tight">Videos</h2>
-          <span className="text-xs text-muted-foreground">{videos.length}/2</span>
+          <span className="text-xs text-muted-foreground">
+            {videos.length}/2
+          </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Upload up to 2 product videos to Cloudinary, or reuse one already in your gallery.
+          Upload up to 2 product videos to Cloudinary, or reuse one already in
+          your gallery.
         </p>
         <CloudinaryMediaManager
           value={videos}
@@ -226,6 +230,23 @@ export function ProductEditForm({ product }: { product: Product }) {
               className="rounded-xl"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="weightKg">Weight (kg)</Label>
+          <Input
+            id="weightKg"
+            name="weightKg"
+            type="number"
+            required
+            min={0.001}
+            step={0.001}
+            defaultValue={product.weightKg}
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">
+            Parcel weight in kilograms — used for logistics pricing
+          </p>
         </div>
       </div>
 

@@ -8,6 +8,9 @@ import { InstallmentCalculator } from "./installment-calculator";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
 import { coerceProductCustomFields } from "@/lib/types";
 import { getSession } from "@/lib/session";
+import { getUserAddresses } from "@/actions/addresses";
+import { getSettingValue } from "@/actions/settings";
+import type { SavedAddressSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +32,17 @@ export default async function ProductDetailPage({
   const pickupLocations = await pickupLocationService.getActive();
   const session = await getSession();
   const hasAcceptedTerms = session?.user.hasAcceptedTerms ?? false;
+  const savedAddresses: SavedAddressSummary[] = session
+    ? ((await getUserAddresses()).data ?? [])
+    : [];
+  const speedafEnabled = (await getSettingValue("enableSpeedaf")) === "true";
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
-      <a href="/products" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+      <a
+        href="/products"
+        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+      >
         &larr; Back to Collection
       </a>
 
@@ -109,7 +119,9 @@ export default async function ProductDetailPage({
                 </span>
               )}
             </div>
-            <h1 className="font-display text-3xl md:text-4xl tracking-tight">{product.name}</h1>
+            <h1 className="font-display text-3xl md:text-4xl tracking-tight">
+              {product.name}
+            </h1>
             {product.description && (
               <div
                 className="mt-3 prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
@@ -123,7 +135,11 @@ export default async function ProductDetailPage({
               {formatNaira(product.markupPrice)}
             </p>
             <p className="text-sm text-muted-foreground">
-              or start with <span className="font-medium text-primary">{formatNaira(deposit)}</span> deposit (20%)
+              or start with{" "}
+              <span className="font-medium text-primary">
+                {formatNaira(deposit)}
+              </span>{" "}
+              deposit (20%)
             </p>
           </div>
 
@@ -134,20 +150,25 @@ export default async function ProductDetailPage({
             sizes={product.sizes}
             customFields={customFields}
             pickupLocations={pickupLocations}
+            savedAddresses={savedAddresses}
             moq={product.moq}
             totalPrice={product.markupPrice}
             priceLockDays={product.priceLockDays}
             hasAcceptedTerms={hasAcceptedTerms}
+            speedafEnabled={speedafEnabled}
           />
 
           {product.expectedProcurementAt && (
             <p className="text-sm text-muted-foreground">
               Expected procurement:{" "}
-              {new Date(product.expectedProcurementAt).toLocaleDateString("en-NG", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {new Date(product.expectedProcurementAt).toLocaleDateString(
+                "en-NG",
+                {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                },
+              )}
             </p>
           )}
         </div>

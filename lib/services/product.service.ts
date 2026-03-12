@@ -57,8 +57,8 @@ export const productService = {
     customFields?: ProductCustomField[];
     originalCost: number;
     markupPrice: number;
+    weightKg: number;
     moq?: number;
-    isPreorder?: boolean;
     expectedProcurementAt?: Date;
     priceLockDays?: number;
     categoryId?: string | null;
@@ -90,6 +90,7 @@ export const productService = {
       customFields: ProductCustomField[];
       originalCost: number;
       markupPrice: number;
+      weightKg: number;
       moq: number;
       isPreorder: boolean;
       expectedProcurementAt: Date;

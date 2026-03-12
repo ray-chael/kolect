@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth-client";
 import { LogOut, User, ShoppingBag } from "lucide-react";
+import { Button } from "../ui/button";
+import Link from "next/link";
 
 interface UserDropdownProps {
   name: string;
@@ -47,14 +49,14 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <Button
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold ring-offset-background transition-all hover:ring-2 hover:ring-primary hover:ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {initials}
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -63,13 +65,15 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
         >
           {/* User info */}
           <div className="border-b border-border/40 px-4 py-3">
-            <p className="text-sm font-medium text-foreground truncate">{name}</p>
+            <p className="text-sm font-medium text-foreground truncate">
+              {name}
+            </p>
             <p className="text-xs text-muted-foreground truncate">{email}</p>
           </div>
 
           {/* Menu items */}
           <div className="py-1">
-            <a
+            <Link
               href="/profile"
               role="menuitem"
               onClick={() => setOpen(false)}
@@ -77,8 +81,8 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
             >
               <User className="h-4 w-4 text-muted-foreground" />
               My Profile
-            </a>
-            <a
+            </Link>
+            <Link
               href="/orders"
               role="menuitem"
               onClick={() => setOpen(false)}
@@ -86,18 +90,18 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
             >
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
               My Orders
-            </a>
+            </Link>
           </div>
 
           <div className="border-t border-border/40 py-1">
-            <button
+            <Button
               role="menuitem"
               onClick={handleSignOut}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-muted transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -20,6 +20,7 @@ export const orderService = {
     productId: string;
     quantity: number;
     addressId?: string;
+    addressLabel?: string;
     deliveryMethod?: "DELIVERY" | "PICKUP";
     pickupLocationId?: string;
     recipientName?: string;
@@ -35,6 +36,7 @@ export const orderService = {
     selectedColor?: string;
     selectedSize?: string;
     customSelections?: ProductCustomSelections;
+    logisticsProvider?: "INTERNAL" | "SPEEDAF";
   }) {
     const product = await prisma.product.findUnique({
       where: { id: data.productId },
@@ -86,7 +88,8 @@ export const orderService = {
 
     let addressId = data.addressId;
     let pickupLocationId: string | undefined;
-    let logisticsProvider: "INTERNAL" | "SPEEDAF" = "INTERNAL";
+    let logisticsProvider: "INTERNAL" | "SPEEDAF" =
+      data.logisticsProvider ?? "INTERNAL";
 
     if (deliveryMethod === "DELIVERY") {
       if (addressId) {
@@ -111,7 +114,7 @@ export const orderService = {
         const savedAddress = await prisma.deliveryAddress.create({
           data: {
             userId: data.userId,
-            label: "Checkout",
+            label: data.addressLabel?.trim() || "Home",
             recipientName,
             phone,
             addressLine1,

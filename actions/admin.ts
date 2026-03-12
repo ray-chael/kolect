@@ -45,6 +45,7 @@ export async function createProduct(formData: FormData): Promise<ActionResult> {
       customFields,
       originalCost: Number(formData.get("originalCost")),
       markupPrice: Number(formData.get("markupPrice")),
+      weightKg: Number(formData.get("weightKg")),
       moq: Number(formData.get("moq") || 1),
       isPreorder: formData.get("isPreorder") === "true",
       expectedProcurementAt: formData.get("expectedProcurementAt")
@@ -119,6 +120,7 @@ export async function updateProduct(
     if (rawData.originalCost)
       rawData.originalCost = Number(rawData.originalCost);
     if (rawData.markupPrice) rawData.markupPrice = Number(rawData.markupPrice);
+    if (rawData.weightKg) rawData.weightKg = Number(rawData.weightKg);
     if (rawData.moq) rawData.moq = Number(rawData.moq);
     if (rawData.priceLockDays)
       rawData.priceLockDays = Number(rawData.priceLockDays);

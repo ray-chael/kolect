@@ -47,6 +47,10 @@ export const createProductSchema = z.object({
   customFields: z.array(productCustomFieldSchema).default([]),
   originalCost: z.number().int().positive("Original cost must be positive"),
   markupPrice: z.number().int().positive("Markup price must be positive"),
+  weightKg: z
+    .number()
+    .positive("Weight is required")
+    .min(0.001, "Weight must be at least 0.001 kg"),
   moq: z.number().int().min(1).default(1),
   isPreorder: z.boolean().default(false),
   expectedProcurementAt: z.coerce.date().optional(),
@@ -64,6 +68,7 @@ export const createOrderSchema = z
     quantity: z.number().int().min(1).default(1),
     termsAccepted: z.boolean().default(false),
     addressId: z.string().optional(),
+    addressLabel: z.string().optional(),
     deliveryMethod: z.enum(["DELIVERY", "PICKUP"]).default("DELIVERY"),
     pickupLocationId: z.string().optional(),
     recipientName: z.string().optional(),
@@ -79,6 +84,7 @@ export const createOrderSchema = z
     selectedColor: z.string().optional(),
     selectedSize: z.string().optional(),
     customSelections: z.record(z.string(), z.string()).default({}),
+    logisticsProvider: z.enum(["INTERNAL", "SPEEDAF"]).default("INTERNAL"),
   })
   .superRefine((data, ctx) => {
     if (!data.termsAccepted) {
@@ -90,44 +96,46 @@ export const createOrderSchema = z
     }
 
     if (data.deliveryMethod === "DELIVERY") {
-      if (!data.recipientName?.trim()) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Recipient name is required",
-          path: ["recipientName"],
-        });
-      }
+      if (!data.addressId) {
+        if (!data.recipientName?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Recipient name is required",
+            path: ["recipientName"],
+          });
+        }
 
-      if (!data.phone?.trim()) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Phone is required",
-          path: ["phone"],
-        });
-      }
+        if (!data.phone?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Phone is required",
+            path: ["phone"],
+          });
+        }
 
-      if (!data.addressLine1?.trim()) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Address is required",
-          path: ["addressLine1"],
-        });
-      }
+        if (!data.addressLine1?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Address is required",
+            path: ["addressLine1"],
+          });
+        }
 
-      if (!data.city?.trim()) {
-        ctx.addIssue({
-          code: "custom",
-          message: "City is required",
-          path: ["city"],
-        });
-      }
+        if (!data.city?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: "City is required",
+            path: ["city"],
+          });
+        }
 
-      if (!data.state?.trim()) {
-        ctx.addIssue({
-          code: "custom",
-          message: "State is required",
-          path: ["state"],
-        });
+        if (!data.state?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: "State is required",
+            path: ["state"],
+          });
+        }
       }
     }
 

@@ -49,6 +49,7 @@ export async function createOrder(formData: FormData): Promise<ActionResult> {
       // If already accepted in DB, treat terms as satisfied regardless of form input
       termsAccepted: alreadyAccepted || termsAcceptedNow,
       addressId: (formData.get("addressId") as string) || undefined,
+      addressLabel: (formData.get("addressLabel") as string) || undefined,
       deliveryMethod: (formData.get("deliveryMethod") as string) || "DELIVERY",
       pickupLocationId:
         (formData.get("pickupLocationId") as string) || undefined,
@@ -67,6 +68,8 @@ export async function createOrder(formData: FormData): Promise<ActionResult> {
       selectedColor: (formData.get("selectedColor") as string) || undefined,
       selectedSize: (formData.get("selectedSize") as string) || undefined,
       customSelections: parseSelectionMap(formData.get("customSelections")),
+      logisticsProvider:
+        (formData.get("logisticsProvider") as string) || "INTERNAL",
     };
 
     const parsed = createOrderSchema.safeParse(rawData);
