@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { AdminMobileNav } from "@/components/shared/admin-mobile-nav";
 
 export default async function AdminLayout({
   children,
@@ -12,11 +13,12 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <a href="/admin" className="font-display text-lg tracking-tight">
             Ade&apos;s Kolekt <span className="text-primary">Admin</span>
           </a>
-          <nav className="flex items-center gap-6">
+          {/* Desktop navigation */}
+          <nav className="hidden lg:flex items-center gap-6">
             <a
               href="/admin"
               className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
@@ -60,6 +62,8 @@ export default async function AdminLayout({
               Settings
             </a>
           </nav>
+          {/* Mobile hamburger */}
+          <AdminMobileNav />
         </div>
       </header>
       <main>{children}</main>

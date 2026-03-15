@@ -11,7 +11,7 @@ export default async function AdminOrdersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-8">
         <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Management</p>
         <h1 className="font-display text-3xl tracking-tight">Orders</h1>
@@ -20,8 +20,8 @@ export default async function AdminOrdersPage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border/60 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-2xl border border-border/60 overflow-x-auto">
+        <table className="w-full min-w-[700px] text-sm">
           <thead>
             <tr className="border-b border-border/40 bg-muted/30">
               <th className="px-5 py-3.5 text-left text-xs tracking-widest uppercase font-medium text-muted-foreground">Customer</th>

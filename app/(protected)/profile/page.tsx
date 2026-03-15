@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 space-y-12">
+    <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12 space-y-12">
       {/* Header */}
       <div>
         <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Account</p>

@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const itemsDelivered = orders.filter((o) => o.status === "DELIVERED").length;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-10">
         <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
           Dashboard
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-3">
         <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-2">
           <p className="text-xs tracking-[0.15em] uppercase text-muted-foreground">
             Active Orders
