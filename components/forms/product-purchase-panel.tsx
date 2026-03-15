@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { createOrder } from "@/actions/orders";
 import { initiatePayment } from "@/actions/orders";
+import { getSpeedafQuote } from "@/actions/shipping";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -88,9 +89,13 @@ interface ProductPurchasePanelProps {
   savedAddresses: SavedAddressSummary[];
   moq: number;
   totalPrice: number;
+  salePrice?: number;
   priceLockDays: number;
   hasAcceptedTerms: boolean;
   speedafEnabled: boolean;
+  productWeightKg: number;
+  /** Standard flat delivery fee in kobo (from admin settings). 0 = free. */
+  standardDeliveryFeeKobo: number;
 }
 
 export function ProductPurchasePanel({
@@ -103,9 +108,12 @@ export function ProductPurchasePanel({
   savedAddresses,
   moq,
   totalPrice,
+  salePrice,
   priceLockDays,
   hasAcceptedTerms,
   speedafEnabled,
+  productWeightKg,
+  standardDeliveryFeeKobo,
 }: ProductPurchasePanelProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
@@ -141,8 +149,58 @@ export function ProductPurchasePanel({
   const [customSelections, setCustomSelections] = useState<
     Record<string, string>
   >({});
+  const [speedafQuote, setSpeedafQuote] = useState<{
+    fee: number;
+    currency: string;
+  } | null>(null);
+  const [speedafQuoteLoading, setSpeedafQuoteLoading] = useState(false);
+  const [speedafQuoteError, setSpeedafQuoteError] = useState<string | null>(
+    null,
+  );
 
-  const effectiveTotal = totalPrice * quantity;
+  // Resolve the destination state from the chosen address or the new-address form
+  const effectiveState = useMemo(() => {
+    if (deliveryMethod !== "DELIVERY") return "";
+    if (selectedAddressId !== "new") {
+      return (
+        savedAddresses.find((a) => a.id === selectedAddressId)?.state ?? ""
+      );
+    }
+    return state;
+  }, [deliveryMethod, selectedAddressId, savedAddresses, state]);
+
+  // Auto-fetch Speedaf quote whenever the provider, destination state, or weight changes
+  useEffect(() => {
+    if (logisticsProvider !== "SPEEDAF" || !effectiveState) {
+      setSpeedafQuote(null);
+      setSpeedafQuoteError(null);
+      return;
+    }
+    let cancelled = false;
+    setSpeedafQuoteLoading(true);
+    setSpeedafQuoteError(null);
+    getSpeedafQuote(effectiveState, productWeightKg).then((result) => {
+      if (cancelled) return;
+      setSpeedafQuoteLoading(false);
+      if (result.success && result.data) {
+        setSpeedafQuote(result.data);
+      } else {
+        setSpeedafQuoteError(result.message ?? "Quote unavailable");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [logisticsProvider, effectiveState, productWeightKg]);
+
+  const effectiveUnitPrice = salePrice ?? totalPrice;
+  const effectiveTotal = effectiveUnitPrice * quantity;
+  // Delivery fee only applies for standard (internal) door delivery — Speedaf is quoted separately
+  const effectiveDeliveryFee =
+    deliveryMethod === "DELIVERY" && logisticsProvider !== "SPEEDAF"
+      ? standardDeliveryFeeKobo
+      : 0;
+  const grandTotal = effectiveTotal + effectiveDeliveryFee;
   const contributionPlan = useMemo(
     () =>
       calculateContributionPlan({
@@ -274,7 +332,7 @@ export function ProductPurchasePanel({
         if (purchaseMode === "buy-now") {
           const paymentFormData = new FormData();
           paymentFormData.set("orderId", orderId);
-          paymentFormData.set("amount", String(effectiveTotal));
+          paymentFormData.set("amount", String(grandTotal));
 
           const paymentResult = await initiatePayment(paymentFormData);
           if (!paymentResult.success) {
@@ -300,6 +358,20 @@ export function ProductPurchasePanel({
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-6">
+      {salePrice && (
+        <div className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="font-semibold text-primary">Flash Sale</span>
+          <span className="text-muted-foreground line-through">
+            {formatNaira(totalPrice)}
+          </span>
+          <span className="font-bold text-primary">
+            {formatNaira(salePrice)}
+          </span>
+          <span className="text-xs text-primary/70">
+            ({Math.round((1 - salePrice / totalPrice) * 100)}% off)
+          </span>
+        </div>
+      )}
       <div>
         <p className="text-xs uppercase tracking-[0.25em] text-primary">
           Configure
@@ -572,6 +644,32 @@ export function ProductPurchasePanel({
                       <p className="mt-1 text-xs text-muted-foreground">
                         Fast door-to-door delivery via Speedaf courier.
                       </p>
+                      {logisticsProvider === "SPEEDAF" && (
+                        <p className="mt-2 text-xs font-medium">
+                          {speedafQuoteLoading ? (
+                            <span className="text-muted-foreground animate-pulse">
+                              Getting rate…
+                            </span>
+                          ) : speedafQuote ? (
+                            <span className="text-primary">
+                              {new Intl.NumberFormat("en-NG", {
+                                style: "currency",
+                                currency: speedafQuote.currency,
+                                minimumFractionDigits: 0,
+                              }).format(speedafQuote.fee)}{" "}
+                              shipping
+                            </span>
+                          ) : speedafQuoteError ? (
+                            <span className="text-destructive">
+                              {speedafQuoteError}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Select a delivery state to see rate
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -869,6 +967,48 @@ export function ProductPurchasePanel({
                   {deliveryMethod === "PICKUP" ? "Pickup" : "Door delivery"}
                 </span>
               </div>
+              {logisticsProvider === "SPEEDAF" &&
+                deliveryMethod === "DELIVERY" && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Speedaf shipping
+                    </span>
+                    <span className="font-medium">
+                      {speedafQuoteLoading ? (
+                        <span className="animate-pulse text-muted-foreground">
+                          Calculating…
+                        </span>
+                      ) : speedafQuote ? (
+                        new Intl.NumberFormat("en-NG", {
+                          style: "currency",
+                          currency: speedafQuote.currency,
+                          minimumFractionDigits: 0,
+                        }).format(speedafQuote.fee)
+                      ) : (
+                        <span className="text-muted-foreground">TBD</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              {logisticsProvider !== "SPEEDAF" && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {deliveryMethod === "PICKUP"
+                      ? "Pickup fee"
+                      : "Standard delivery"}
+                  </span>
+                  <span className="font-medium">
+                    {deliveryMethod === "PICKUP" ||
+                    standardDeliveryFeeKobo === 0 ? (
+                      <span className="text-green-600 dark:text-green-400">
+                        Free
+                      </span>
+                    ) : (
+                      formatNaira(standardDeliveryFeeKobo)
+                    )}
+                  </span>
+                </div>
+              )}
               <div className="border-t border-border/60 pt-2 flex justify-between">
                 <span className="text-muted-foreground">
                   {
@@ -896,10 +1036,52 @@ export function ProductPurchasePanel({
                   {deliveryMethod === "PICKUP" ? "Pickup" : "Door delivery"}
                 </span>
               </div>
+              {logisticsProvider === "SPEEDAF" &&
+                deliveryMethod === "DELIVERY" && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Speedaf shipping
+                    </span>
+                    <span className="font-medium">
+                      {speedafQuoteLoading ? (
+                        <span className="animate-pulse text-muted-foreground">
+                          Calculating…
+                        </span>
+                      ) : speedafQuote ? (
+                        new Intl.NumberFormat("en-NG", {
+                          style: "currency",
+                          currency: speedafQuote.currency,
+                          minimumFractionDigits: 0,
+                        }).format(speedafQuote.fee)
+                      ) : (
+                        <span className="text-muted-foreground">TBD</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              {logisticsProvider !== "SPEEDAF" && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {deliveryMethod === "PICKUP"
+                      ? "Pickup fee"
+                      : "Standard delivery"}
+                  </span>
+                  <span className="font-medium">
+                    {deliveryMethod === "PICKUP" ||
+                    standardDeliveryFeeKobo === 0 ? (
+                      <span className="text-green-600 dark:text-green-400">
+                        Free
+                      </span>
+                    ) : (
+                      formatNaira(standardDeliveryFeeKobo)
+                    )}
+                  </span>
+                </div>
+              )}
               <div className="border-t border-border/60 pt-2 flex justify-between">
                 <span className="text-muted-foreground">Pay now</span>
                 <span className="font-display text-lg font-semibold">
-                  {formatNaira(effectiveTotal)}
+                  {formatNaira(grandTotal)}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">

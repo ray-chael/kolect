@@ -1,28 +1,29 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
-    Bold,
-    Italic,
-    Underline as UnderlineIcon,
-    Strikethrough,
-    List,
-    ListOrdered,
-    Link as LinkIcon,
-    AlignLeft,
-    AlignCenter,
-    Heading2,
-    Heading3,
-    Undo,
-    Redo,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Link as LinkIcon,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Heading2,
+  Heading3,
+  Undo,
+  Redo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 interface RichTextEditorProps {
   value?: string;
@@ -61,6 +62,54 @@ export function RichTextEditor({
     },
   });
 
+  // Sync external value changes into the editor (e.g. edit form loading existing content)
+  useEffect(() => {
+    if (!editor) return;
+    const currentHTML = editor.getHTML();
+    const normalized = value || "";
+    if (normalized !== currentHTML && !(editor.isEmpty && !normalized)) {
+      editor.commands.setContent(normalized);
+    }
+  }, [editor, value]);
+
+  // Subscribe to editor state so toolbar buttons re-render on selection/mark changes.
+  // In TipTap v3, useEditor alone does NOT trigger re-renders on transactions.
+  const toolbarState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      const e = ctx.editor;
+      if (!e)
+        return {
+          isBold: false,
+          isItalic: false,
+          isUnderline: false,
+          isStrike: false,
+          isH2: false,
+          isH3: false,
+          isBullet: false,
+          isOrdered: false,
+          isAlignLeft: false,
+          isAlignCenter: false,
+          isAlignRight: false,
+          isLink: false,
+        };
+      return {
+        isBold: e.isActive("bold"),
+        isItalic: e.isActive("italic"),
+        isUnderline: e.isActive("underline"),
+        isStrike: e.isActive("strike"),
+        isH2: e.isActive("heading", { level: 2 }),
+        isH3: e.isActive("heading", { level: 3 }),
+        isBullet: e.isActive("bulletList"),
+        isOrdered: e.isActive("orderedList"),
+        isAlignLeft: e.isActive({ textAlign: "left" }),
+        isAlignCenter: e.isActive({ textAlign: "center" }),
+        isAlignRight: e.isActive({ textAlign: "right" }),
+        isLink: e.isActive("link"),
+      };
+    },
+  });
+
   const setLink = useCallback(() => {
     if (!editor) return;
     const previousUrl = editor.getAttributes("link").href;
@@ -70,12 +119,7 @@ export function RichTextEditor({
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .setLink({ href: url })
-      .run();
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
   if (!editor) return null;
@@ -86,28 +130,28 @@ export function RichTextEditor({
       <div className="flex flex-wrap items-center gap-0.5 border-b border-border/60 px-2 py-1.5">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
-          active={editor.isActive("bold")}
+          active={toolbarState?.isBold ?? false}
           title="Bold"
         >
           <Bold className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive("italic")}
+          active={toolbarState?.isItalic ?? false}
           title="Italic"
         >
           <Italic className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive("underline")}
+          active={toolbarState?.isUnderline ?? false}
           title="Underline"
         >
           <UnderlineIcon className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          active={editor.isActive("strike")}
+          active={toolbarState?.isStrike ?? false}
           title="Strikethrough"
         >
           <Strikethrough className="h-4 w-4" />
@@ -119,7 +163,7 @@ export function RichTextEditor({
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
-          active={editor.isActive("heading", { level: 2 })}
+          active={toolbarState?.isH2 ?? false}
           title="Heading 2"
         >
           <Heading2 className="h-4 w-4" />
@@ -128,7 +172,7 @@ export function RichTextEditor({
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 3 }).run()
           }
-          active={editor.isActive("heading", { level: 3 })}
+          active={toolbarState?.isH3 ?? false}
           title="Heading 3"
         >
           <Heading3 className="h-4 w-4" />
@@ -138,14 +182,14 @@ export function RichTextEditor({
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive("bulletList")}
+          active={toolbarState?.isBullet ?? false}
           title="Bullet List"
         >
           <List className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          active={editor.isActive("orderedList")}
+          active={toolbarState?.isOrdered ?? false}
           title="Ordered List"
         >
           <ListOrdered className="h-4 w-4" />
@@ -155,24 +199,31 @@ export function RichTextEditor({
 
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          active={editor.isActive({ textAlign: "left" })}
+          active={toolbarState?.isAlignLeft ?? false}
           title="Align Left"
         >
           <AlignLeft className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          active={editor.isActive({ textAlign: "center" })}
+          active={toolbarState?.isAlignCenter ?? false}
           title="Align Center"
         >
           <AlignCenter className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          active={toolbarState?.isAlignRight ?? false}
+          title="Align Right"
+        >
+          <AlignRight className="h-4 w-4" />
         </ToolbarButton>
 
         <div className="mx-1 h-5 w-px bg-border/60" />
 
         <ToolbarButton
           onClick={setLink}
-          active={editor.isActive("link")}
+          active={toolbarState?.isLink ?? false}
           title="Link"
         >
           <LinkIcon className="h-4 w-4" />

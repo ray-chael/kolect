@@ -26,8 +26,12 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  const deposit = calculateDeposit(product.markupPrice);
-  const remaining = product.markupPrice - deposit;
+  const activeSale = product.flashSales?.[0] ?? null;
+  const effectivePrice = activeSale
+    ? activeSale.salePrice
+    : product.markupPrice;
+  const deposit = calculateDeposit(effectivePrice);
+  const remaining = effectivePrice - deposit;
   const customFields = coerceProductCustomFields(product.customFields);
   const pickupLocations = await pickupLocationService.getActive();
   const session = await getSession();
@@ -36,6 +40,9 @@ export default async function ProductDetailPage({
     ? ((await getUserAddresses()).data ?? [])
     : [];
   const speedafEnabled = (await getSettingValue("enableSpeedaf")) === "true";
+  const deliveryFeeNaira =
+    Number(await getSettingValue("standardDeliveryFee")) || 0;
+  const deliveryFeeKobo = Math.round(deliveryFeeNaira * 100);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
@@ -131,16 +138,47 @@ export default async function ProductDetailPage({
           </div>
 
           <div className="space-y-1">
-            <p className="font-display text-3xl md:text-4xl text-foreground">
-              {formatNaira(product.markupPrice)}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              or start with{" "}
-              <span className="font-medium text-primary">
-                {formatNaira(deposit)}
-              </span>{" "}
-              deposit (20%)
-            </p>
+            {activeSale ? (
+              <>
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="font-display text-3xl md:text-4xl text-primary">
+                    {formatNaira(activeSale.salePrice)}
+                  </p>
+                  <p className="font-display text-xl text-muted-foreground line-through">
+                    {formatNaira(product.markupPrice)}
+                  </p>
+                  <span className="rounded-full bg-destructive/10 text-destructive px-3 py-1 text-xs font-medium">
+                    {Math.round(
+                      (1 - activeSale.salePrice / product.markupPrice) * 100,
+                    )}
+                    % off
+                  </span>
+                </div>
+                <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  {activeSale.label}
+                </span>
+                <p className="text-sm text-muted-foreground">
+                  or start with{" "}
+                  <span className="font-medium text-primary">
+                    {formatNaira(deposit)}
+                  </span>{" "}
+                  deposit (20%)
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-3xl md:text-4xl text-foreground">
+                  {formatNaira(product.markupPrice)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  or start with{" "}
+                  <span className="font-medium text-primary">
+                    {formatNaira(deposit)}
+                  </span>{" "}
+                  deposit (20%)
+                </p>
+              </>
+            )}
           </div>
 
           <ProductPurchasePanel
@@ -153,9 +191,12 @@ export default async function ProductDetailPage({
             savedAddresses={savedAddresses}
             moq={product.moq}
             totalPrice={product.markupPrice}
+            salePrice={activeSale?.salePrice}
             priceLockDays={product.priceLockDays}
             hasAcceptedTerms={hasAcceptedTerms}
             speedafEnabled={speedafEnabled}
+            productWeightKg={product.weightKg ?? 0.5}
+            standardDeliveryFeeKobo={deliveryFeeKobo}
           />
 
           {product.expectedProcurementAt && (
@@ -176,7 +217,7 @@ export default async function ProductDetailPage({
 
       <div className="mt-10">
         <InstallmentCalculator
-          totalPrice={product.markupPrice}
+          totalPrice={effectivePrice}
           deposit={deposit}
           remaining={remaining}
           priceLockDays={product.priceLockDays}

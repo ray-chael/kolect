@@ -160,7 +160,8 @@ model Product {
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
-  orders Order[]
+  orders     Order[]
+  flashSales  FlashSale[]
 
   @@map("products")
 }
@@ -189,7 +190,8 @@ model Order {
   selectedColor      String?
   selectedSize       String?
   customSelections   Json        @default("{}")
-  totalAmount        Int         // Locked price at order creation in kobo
+  deliveryFeeKobo    Int         @default(0) // Delivery fee in kobo (0 for free/pickup)
+  totalAmount        Int         // Locked price at order creation in kobo (product + delivery)
   installmentMonths  Int         @default(3) // Duration the user wants to spread payments
   amountPaid         Int         @default(0)
   status             OrderStatus @default(PENDING)
@@ -317,6 +319,23 @@ model AdminAction {
 
   @@index([adminUserId])
   @@map("admin_actions")
+}
+
+model FlashSale {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String   @default("Flash Sale")
+  salePrice Int      // Discounted selling price in kobo
+  startsAt  DateTime
+  endsAt    DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([isActive, endsAt])
+  @@map("flash_sales")
 }
 
 model SystemSetting {

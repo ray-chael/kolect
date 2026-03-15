@@ -18,7 +18,14 @@ export const productService = {
         status: (options?.status as "AVAILABLE") ?? "AVAILABLE",
         ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
       },
-      include: { category: true },
+      include: {
+        category: true,
+        flashSales: {
+          where: { isActive: true, startsAt: { lte: new Date() }, endsAt: { gte: new Date() } },
+          orderBy: { salePrice: "asc" },
+          take: 1,
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
   },
@@ -29,7 +36,14 @@ export const productService = {
   async getBySlug(slug: string) {
     return prisma.product.findUnique({
       where: { slug },
-      include: { category: true },
+      include: {
+        category: true,
+        flashSales: {
+          where: { isActive: true, startsAt: { lte: new Date() }, endsAt: { gte: new Date() } },
+          orderBy: { salePrice: "asc" },
+          take: 1,
+        },
+      },
     });
   },
 

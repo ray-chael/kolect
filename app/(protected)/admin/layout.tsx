@@ -48,6 +48,12 @@ export default async function AdminLayout({
               Pickup
             </a>
             <a
+              href="/admin/flash-sales"
+              className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
+              Sales
+            </a>
+            <a
               href="/admin/settings"
               className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
             >

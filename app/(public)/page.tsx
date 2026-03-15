@@ -149,15 +149,37 @@ export default async function HomePage() {
                         </svg>
                       </div>
                     )}
+                    {product.flashSales?.[0] && (
+                      <span className="absolute top-2 left-2 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-sm">
+                        {product.flashSales[0].label}
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-semibold tracking-tight group-hover:text-primary transition-colors duration-300">
                     {product.name}
                   </h3>
-                  <p className="mt-1 text-lg font-bold text-foreground">
-                    {formatNaira(product.markupPrice)}
-                  </p>
+                  {product.flashSales?.[0] ? (
+                    <div className="mt-1 flex items-baseline gap-2">
+                      <p className="text-lg font-bold text-primary">
+                        {formatNaira(product.flashSales[0].salePrice)}
+                      </p>
+                      <p className="text-sm text-muted-foreground line-through">
+                        {formatNaira(product.markupPrice)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-lg font-bold text-foreground">
+                      {formatNaira(product.markupPrice)}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-muted-foreground">
-                    From {formatNaira(Math.round(product.markupPrice * 0.2))}{" "}
+                    From{" "}
+                    {formatNaira(
+                      Math.round(
+                        (product.flashSales?.[0]?.salePrice ??
+                          product.markupPrice) * 0.2,
+                      ),
+                    )}{" "}
                     deposit
                   </p>
                 </a>

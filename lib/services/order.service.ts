@@ -37,6 +37,8 @@ export const orderService = {
     selectedSize?: string;
     customSelections?: ProductCustomSelections;
     logisticsProvider?: "INTERNAL" | "SPEEDAF";
+    /** Standard delivery fee in kobo (0 for pickup or free delivery) */
+    deliveryFeeKobo?: number;
   }) {
     const product = await prisma.product.findUnique({
       where: { id: data.productId },
@@ -145,7 +147,10 @@ export const orderService = {
 
     const purchaseMode = data.purchaseMode ?? "contribute";
     const baseTotal = product.markupPrice * data.quantity;
-    let totalAmount = baseTotal;
+    // Delivery fee only applies to door delivery; pickup is always free
+    const deliveryFeeKobo =
+      deliveryMethod === "DELIVERY" ? (data.deliveryFeeKobo ?? 0) : 0;
+    let totalAmount = baseTotal + deliveryFeeKobo;
     let installmentMonths =
       purchaseMode === "buy-now" ? 1 : Math.min(data.installmentMonths ?? 3, 3);
 
@@ -161,7 +166,7 @@ export const orderService = {
         duration,
       });
 
-      totalAmount = plan.adjustedTotal;
+      totalAmount = plan.adjustedTotal + deliveryFeeKobo;
       installmentMonths = plan.installmentMonths;
       normalizedSelections["Payment plan"] =
         `${cadence} over ${plan.durationLabel}`;
@@ -187,6 +192,7 @@ export const orderService = {
         selectedColor: data.selectedColor,
         selectedSize: data.selectedSize,
         customSelections: coerceCustomSelections(normalizedSelections),
+        deliveryFeeKobo,
         totalAmount,
         installmentMonths,
         priceLockExpiresAt,

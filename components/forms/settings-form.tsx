@@ -32,6 +32,12 @@ const GROUPS: { title: string; description?: string; keys: string[] }[] = [
     keys: ["storeActive", "announcementBanner"],
   },
   {
+    title: "Delivery & Shipping",
+    description:
+      "Flat delivery fee charged for standard door delivery. Set to 0 for free standard delivery. Pickup orders are always free.",
+    keys: ["standardDeliveryFee"],
+  },
+  {
     title: "Speedaf Logistics",
     description:
       "Enable Speedaf to offer third-party doorstep delivery. Credentials are provided by Speedaf upon account setup.",

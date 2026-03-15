@@ -1,0 +1,4 @@
+
+> ades-collection@0.1.0 build C:\Users\rexed\codes\ades-collection
+> next build
+

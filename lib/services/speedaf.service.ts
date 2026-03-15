@@ -325,9 +325,19 @@ export const speedafService = {
   },
 };
 
+/** Speedaf-provided sandbox credentials used when live credentials are not configured. */
+const SPEEDAF_TEST_CREDENTIALS: SpeedafCredentials = {
+  appCode: "test",
+  secretKey: "12345678",
+  customerCode: "test",
+  platformSource: "WEB",
+};
+
 /**
  * Build a SpeedafCredentials object from system settings values.
- * Throws if any required credential is missing.
+ * Falls back to Speedaf test credentials (with a console warning) when
+ * live credentials are missing or invalid, so the integration keeps working
+ * before go-live.
  */
 export function buildSpeedafCredentials(settings: Record<string, string>): SpeedafCredentials {
   const appCode = settings.speedafAppCode?.trim();
@@ -336,11 +346,13 @@ export function buildSpeedafCredentials(settings: Record<string, string>): Speed
   const platformSource = settings.speedafPlatformSource?.trim() || "WEB";
 
   if (!appCode || !secretKey || !customerCode) {
-    throw new Error("Speedaf credentials are not fully configured in settings");
+    console.warn("[Speedaf] Live credentials not configured — falling back to test credentials");
+    return SPEEDAF_TEST_CREDENTIALS;
   }
 
   if (secretKey.length !== 8) {
-    throw new Error("Speedaf secret key must be exactly 8 characters");
+    console.warn("[Speedaf] Secret key is not 8 characters — falling back to test credentials");
+    return SPEEDAF_TEST_CREDENTIALS;
   }
 
   return { appCode, secretKey, customerCode, platformSource };

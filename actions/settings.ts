@@ -62,6 +62,13 @@ const DEFAULTS: SystemSetting[] = [
     type: "string",
     label: "Announcement Banner Text",
   },
+  // ─── Delivery & Shipping ────────────────────────────────────
+  {
+    key: "standardDeliveryFee",
+    value: "0",
+    type: "number",
+    label: "Standard Delivery Fee (₦)",
+  },
   // ─── Speedaf Logistics ────────────────────────────────────────
   {
     key: "enableSpeedaf",

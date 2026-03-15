@@ -7,6 +7,7 @@ import { createOrderSchema, initiatePaymentSchema } from "@/lib/schemas";
 import type { ActionResult } from "@/lib/types";
 import { MIN_INSTALLMENT_KOBO } from "@/lib/consts";
 import { prisma } from "@/lib/db";
+import { getSettingValue } from "@/actions/settings";
 
 function parseSelectionMap(
   value: FormDataEntryValue | null,
@@ -89,8 +90,18 @@ export async function createOrder(formData: FormData): Promise<ActionResult> {
       });
     }
 
+    // Resolve delivery fee: standard fee only applies to door delivery, not pickup
+    const deliveryMethod = parsed.data.deliveryMethod ?? "DELIVERY";
+    let deliveryFeeKobo = 0;
+    if (deliveryMethod === "DELIVERY") {
+      const feeNaira =
+        Number(await getSettingValue("standardDeliveryFee")) || 0;
+      deliveryFeeKobo = Math.round(feeNaira * 100); // naira → kobo
+    }
+
     const order = await orderService.create({
       userId: session.user.id,
+      deliveryFeeKobo,
       ...parsed.data,
     });
 
