@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { updateSystemSettings } from "@/actions/settings";
 import type { SystemSetting } from "@/actions/settings";
+import { DeliveryRateEditor } from "@/components/forms/delivery-rate-editor";
 
 interface SettingsFormProps {
   settings: SystemSetting[];
@@ -34,7 +35,7 @@ const GROUPS: { title: string; description?: string; keys: string[] }[] = [
   {
     title: "Delivery & Shipping",
     description:
-      'Default delivery fee applies when no specific rate is found. Lagos LGA Rates and State Delivery Rates are JSON maps of display-name → naira value, e.g. {"Ikeja": 1500}. Pickup orders are always free.',
+      "Set per-location delivery fees for Lagos LGAs and other states. The default fee is used as a fallback when no matching rate is found. Pickup orders are always free.",
     keys: ["defaultDeliveryFee", "lagosLgaRates", "stateDeliveryRates"],
   },
   {
@@ -107,7 +108,39 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                 >
                   <Label htmlFor={key}>{setting.label}</Label>
 
-                  {setting.type === "boolean" ? (
+                  {key === "lagosLgaRates" || key === "stateDeliveryRates" ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] text-muted-foreground/60">
+                        {key === "lagosLgaRates"
+                          ? "Applied when the customer selects a Lagos LGA at checkout."
+                          : "Applied when the customer's state is outside Lagos."}
+                      </p>
+                      <DeliveryRateEditor
+                        value={values[key] ?? "{}"}
+                        onChange={(json) => handleChange(key, json)}
+                        placeholder={
+                          key === "lagosLgaRates" ? "e.g. Ikeja" : "e.g. Abuja"
+                        }
+                        disabled={isPending}
+                      />
+                    </div>
+                  ) : key === "defaultDeliveryFee" ? (
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        ₦
+                      </span>
+                      <Input
+                        id={key}
+                        type="number"
+                        value={values[key]}
+                        onChange={(e) => handleChange(key, e.target.value)}
+                        min={0}
+                        disabled={isPending}
+                        className="pl-7"
+                        placeholder="0"
+                      />
+                    </div>
+                  ) : setting.type === "boolean" ? (
                     <div className="flex items-center gap-3 h-10">
                       <Button
                         id={key}
