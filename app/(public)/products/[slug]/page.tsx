@@ -6,6 +6,7 @@ import { calculateDeposit } from "@/lib/utils";
 import Image from "next/image";
 import { InstallmentCalculator } from "./installment-calculator";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
+import { FlashSaleCountdown } from "@/components/shared/flash-sale-countdown";
 import { coerceProductCustomFields } from "@/lib/types";
 import { getSession } from "@/lib/session";
 import { getUserAddresses } from "@/actions/addresses";
@@ -166,6 +167,21 @@ export default async function ProductDetailPage({
                 <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   {activeSale.label}
                 </span>
+                <div className="flex items-center gap-2 rounded-full bg-destructive/10 border border-destructive/20 px-3 py-1.5 text-destructive text-sm w-fit">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M13 2L4.09 12.96A1 1 0 0 0 5 14.5h5.5L11 22l8.91-10.96A1 1 0 0 0 19 9.5H13.5L13 2Z" />
+                  </svg>
+                  <span className="font-medium">Flash Sale — ends in</span>
+                  <FlashSaleCountdown
+                    endsAt={activeSale.endsAt.toISOString()}
+                  />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   or start with{" "}
                   <span className="font-medium text-primary">

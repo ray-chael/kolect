@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { HeroCTA } from "@/components/shared/hero-cta";
+import { FlashSaleSection } from "@/components/shared/flash-sale-section";
 import { productService } from "@/lib/services/product.service";
 import { formatNaira } from "@/lib/types";
 
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const products = await productService.getAll();
   const featured = products.slice(0, 6);
+  const flashSaleProducts = products.filter(
+    (p) => (p.flashSales?.length ?? 0) > 0,
+  );
 
   return (
     <>
@@ -93,6 +97,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Flash Sales */}
+      <FlashSaleSection products={flashSaleProducts} />
 
       {/* Featured Products */}
       {featured.length > 0 && (
