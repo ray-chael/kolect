@@ -147,12 +147,15 @@ async function postNew<T>(
   const dataStr = JSON.stringify(payload);
   const sign = buildSign(timestamp, creds.secretKey, dataStr);
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  // The "new" endpoints require appCode + timestamp as query parameters
+  const url = new URL(`${BASE_URL}${path}`);
+  url.searchParams.set("appCode", creds.appCode);
+  url.searchParams.set("timestamp", String(timestamp));
+
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: {
-      "Content-Type": "application/text",
-      appCode: creds.appCode,
-      timestamp: String(timestamp),
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ data: dataStr, sign }),
   });
@@ -161,9 +164,15 @@ async function postNew<T>(
     throw new Error(`Speedaf HTTP ${res.status}: ${await res.text()}`);
   }
 
-  const json = (await res.json()) as { success: boolean; errorMessage?: string; data?: T };
+  const json = (await res.json()) as {
+    success: boolean;
+    errorMessage?: string;
+    data?: T;
+  };
   if (!json.success) {
-    throw new Error(`Speedaf API error: ${json.errorMessage ?? "Unknown error"}`);
+    throw new Error(
+      `Speedaf API error: ${json.errorMessage ?? "Unknown error"}`,
+    );
   }
   return json.data as T;
 }
