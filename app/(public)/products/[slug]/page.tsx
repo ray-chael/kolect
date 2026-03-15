@@ -10,6 +10,7 @@ import { coerceProductCustomFields } from "@/lib/types";
 import { getSession } from "@/lib/session";
 import { getUserAddresses } from "@/actions/addresses";
 import { getSettingValue } from "@/actions/settings";
+import { parseDeliveryRates } from "@/lib/utils/delivery-rates";
 import type { SavedAddressSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -40,9 +41,17 @@ export default async function ProductDetailPage({
     ? ((await getUserAddresses()).data ?? [])
     : [];
   const speedafEnabled = (await getSettingValue("enableSpeedaf")) === "true";
-  const deliveryFeeNaira =
-    Number(await getSettingValue("standardDeliveryFee")) || 0;
-  const deliveryFeeKobo = Math.round(deliveryFeeNaira * 100);
+  const [defaultFeeNaira, lagosLgaRatesJson, stateDeliveryRatesJson] =
+    await Promise.all([
+      getSettingValue("defaultDeliveryFee").then((v) => Number(v) || 0),
+      getSettingValue("lagosLgaRates").then((v) => v || "{}"),
+      getSettingValue("stateDeliveryRates").then((v) => v || "{}"),
+    ]);
+  const deliveryRates = parseDeliveryRates(
+    lagosLgaRatesJson,
+    stateDeliveryRatesJson,
+    defaultFeeNaira,
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
@@ -196,7 +205,7 @@ export default async function ProductDetailPage({
             hasAcceptedTerms={hasAcceptedTerms}
             speedafEnabled={speedafEnabled}
             productWeightKg={product.weightKg ?? 0.5}
-            standardDeliveryFeeKobo={deliveryFeeKobo}
+            deliveryRates={deliveryRates}
           />
 
           {product.expectedProcurementAt && (

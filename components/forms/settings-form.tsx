@@ -34,8 +34,8 @@ const GROUPS: { title: string; description?: string; keys: string[] }[] = [
   {
     title: "Delivery & Shipping",
     description:
-      "Flat delivery fee charged for standard door delivery. Set to 0 for free standard delivery. Pickup orders are always free.",
-    keys: ["standardDeliveryFee"],
+      'Default delivery fee applies when no specific rate is found. Lagos LGA Rates and State Delivery Rates are JSON maps of display-name → naira value, e.g. {"Ikeja": 1500}. Pickup orders are always free.',
+    keys: ["defaultDeliveryFee", "lagosLgaRates", "stateDeliveryRates"],
   },
   {
     title: "Speedaf Logistics",
@@ -101,7 +101,10 @@ export function SettingsForm({ settings }: SettingsFormProps) {
               if (!setting) return null;
 
               return (
-                <div key={key} className="space-y-1.5">
+                <div
+                  key={key}
+                  className={`space-y-1.5${setting.type === "json" ? " sm:col-span-2" : ""}`}
+                >
                   <Label htmlFor={key}>{setting.label}</Label>
 
                   {setting.type === "boolean" ? (
@@ -135,6 +138,17 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                         {values[key] === "true" ? "Enabled" : "Disabled"}
                       </span>
                     </div>
+                  ) : setting.type === "json" ? (
+                    <textarea
+                      id={key}
+                      value={values[key]}
+                      onChange={(e) => handleChange(key, e.target.value)}
+                      disabled={isPending}
+                      rows={5}
+                      spellCheck={false}
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder='{"LGA or State name": 1500}'
+                    />
                   ) : setting.type === "number" ? (
                     <Input
                       id={key}

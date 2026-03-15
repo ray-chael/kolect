@@ -9,7 +9,7 @@ import type { ActionResult } from "@/lib/types";
 export interface SystemSetting {
   key: string;
   value: string;
-  type: "string" | "number" | "boolean";
+  type: "string" | "number" | "boolean" | "json";
   label: string;
 }
 
@@ -64,10 +64,22 @@ const DEFAULTS: SystemSetting[] = [
   },
   // ─── Delivery & Shipping ────────────────────────────────────
   {
-    key: "standardDeliveryFee",
+    key: "defaultDeliveryFee",
     value: "0",
     type: "number",
-    label: "Standard Delivery Fee (₦)",
+    label: "Default Delivery Fee (₦, fallback)",
+  },
+  {
+    key: "lagosLgaRates",
+    value: "{}",
+    type: "json",
+    label: "Lagos LGA Rates (₦)",
+  },
+  {
+    key: "stateDeliveryRates",
+    value: "{}",
+    type: "json",
+    label: "State Delivery Rates (₦)",
   },
   // ─── Speedaf Logistics ────────────────────────────────────────
   {

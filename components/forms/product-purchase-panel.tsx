@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  computeDeliveryFeeKobo,
+  type DeliveryRates,
+} from "@/lib/utils/delivery-rates";
 import { createOrder } from "@/actions/orders";
 import { initiatePayment } from "@/actions/orders";
 import { getSpeedafQuote } from "@/actions/shipping";
@@ -94,8 +98,8 @@ interface ProductPurchasePanelProps {
   hasAcceptedTerms: boolean;
   speedafEnabled: boolean;
   productWeightKg: number;
-  /** Standard flat delivery fee in kobo (from admin settings). 0 = free. */
-  standardDeliveryFeeKobo: number;
+  /** Distance-based delivery rates from admin settings. */
+  deliveryRates: DeliveryRates;
 }
 
 export function ProductPurchasePanel({
@@ -113,7 +117,7 @@ export function ProductPurchasePanel({
   hasAcceptedTerms,
   speedafEnabled,
   productWeightKg,
-  standardDeliveryFeeKobo,
+  deliveryRates,
 }: ProductPurchasePanelProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
@@ -157,6 +161,7 @@ export function ProductPurchasePanel({
   const [speedafQuoteError, setSpeedafQuoteError] = useState<string | null>(
     null,
   );
+  const [lagosLgas, setLagosLgas] = useState<string[]>([]);
 
   // Resolve the destination state from the chosen address or the new-address form
   const effectiveState = useMemo(() => {
@@ -168,6 +173,33 @@ export function ProductPurchasePanel({
     }
     return state;
   }, [deliveryMethod, selectedAddressId, savedAddresses, state]);
+
+  // Resolve the LGA / city from the chosen address or the new-address form
+  const effectiveCity = useMemo(() => {
+    if (deliveryMethod !== "DELIVERY") return "";
+    if (selectedAddressId !== "new") {
+      return savedAddresses.find((a) => a.id === selectedAddressId)?.city ?? "";
+    }
+    return city;
+  }, [deliveryMethod, selectedAddressId, savedAddresses, city]);
+
+  // Fetch Lagos LGA list when user selects Lagos in the new-address form
+  useEffect(() => {
+    if (effectiveState !== "Lagos" || selectedAddressId !== "new") return;
+    if (lagosLgas.length > 0) return; // already loaded
+    let cancelled = false;
+    fetch("https://isce-utils-6pzaw.ondigitalocean.app/v1/lgas/states/LA")
+      .then((r) => r.json() as Promise<{ data: { name: string }[] }>)
+      .then((data) => {
+        if (!cancelled) setLagosLgas(data.data.map((lga) => lga.name).sort());
+      })
+      .catch(() => {
+        /* silently ignore — user can type city manually */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveState, selectedAddressId, lagosLgas.length]);
 
   // Auto-fetch Speedaf quote whenever the provider, destination state, or weight changes
   useEffect(() => {
@@ -196,10 +228,21 @@ export function ProductPurchasePanel({
   const effectiveUnitPrice = salePrice ?? totalPrice;
   const effectiveTotal = effectiveUnitPrice * quantity;
   // Delivery fee only applies for standard (internal) door delivery — Speedaf is quoted separately
-  const effectiveDeliveryFee =
-    deliveryMethod === "DELIVERY" && logisticsProvider !== "SPEEDAF"
-      ? standardDeliveryFeeKobo
-      : 0;
+  const effectiveDeliveryFee = useMemo(
+    () =>
+      deliveryMethod === "DELIVERY" &&
+      logisticsProvider !== "SPEEDAF" &&
+      effectiveState
+        ? computeDeliveryFeeKobo(effectiveState, effectiveCity, deliveryRates)
+        : 0,
+    [
+      deliveryMethod,
+      logisticsProvider,
+      effectiveState,
+      effectiveCity,
+      deliveryRates,
+    ],
+  );
   const grandTotal = effectiveTotal + effectiveDeliveryFee;
   const contributionPlan = useMemo(
     () =>
@@ -236,7 +279,7 @@ export function ProductPurchasePanel({
       { label: "Recipient name", value: recipientName },
       { label: "Phone", value: phone },
       { label: "Address", value: addressLine1 },
-      { label: "City", value: city },
+      { label: state === "Lagos" ? "LGA / Area" : "City", value: city },
       { label: "State", value: state },
     ]
       .filter((field) => !field.value.trim())
@@ -268,6 +311,11 @@ export function ProductPurchasePanel({
     if (nextMethod === "PICKUP" && !pickupLocationId && pickupLocations[0]) {
       setPickupLocationId(pickupLocations[0].id);
     }
+  }
+
+  function handleStateChange(v: string | null) {
+    setState(v ?? "");
+    setCity(""); // reset city / LGA whenever the state changes
   }
 
   function handleSubmit(formData: FormData) {
@@ -580,20 +628,8 @@ export function ProductPurchasePanel({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={city}
-                      onChange={(event) => setCity(event.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
-                    <Select
-                      value={state}
-                      onValueChange={(v) => setState(v ?? "")}
-                    >
+                    <Select value={state} onValueChange={handleStateChange}>
                       <SelectTrigger id="state" className="w-full rounded-xl">
                         <SelectValue placeholder="Choose a state" />
                       </SelectTrigger>
@@ -606,6 +642,44 @@ export function ProductPurchasePanel({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* City / LGA — LGA selector for Lagos, free-text otherwise */}
+                  {state === "Lagos" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="lga">LGA / Area</Label>
+                      <Select
+                        value={city}
+                        onValueChange={(v) => setCity(v ?? "")}
+                      >
+                        <SelectTrigger id="lga" className="w-full rounded-xl">
+                          <SelectValue
+                            placeholder={
+                              lagosLgas.length === 0
+                                ? "Loading areas…"
+                                : "Choose your LGA"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lagosLgas.map((lga) => (
+                            <SelectItem key={lga} value={lga}>
+                              {lga}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={city}
+                        onChange={(event) => setCity(event.target.value)}
+                        className="rounded-xl"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -998,14 +1072,27 @@ export function ProductPurchasePanel({
                       : "Standard delivery"}
                   </span>
                   <span className="font-medium">
-                    {deliveryMethod === "PICKUP" ||
-                    standardDeliveryFeeKobo === 0 ? (
-                      <span className="text-green-600 dark:text-green-400">
-                        Free
-                      </span>
-                    ) : (
-                      formatNaira(standardDeliveryFeeKobo)
-                    )}
+                    {(() => {
+                      if (deliveryMethod === "PICKUP")
+                        return (
+                          <span className="text-green-600 dark:text-green-400">
+                            Free
+                          </span>
+                        );
+                      if (!effectiveState)
+                        return (
+                          <span className="text-muted-foreground text-xs">
+                            Select state
+                          </span>
+                        );
+                      if (effectiveDeliveryFee === 0)
+                        return (
+                          <span className="text-green-600 dark:text-green-400">
+                            Free
+                          </span>
+                        );
+                      return formatNaira(effectiveDeliveryFee);
+                    })()}
                   </span>
                 </div>
               )}
@@ -1067,14 +1154,27 @@ export function ProductPurchasePanel({
                       : "Standard delivery"}
                   </span>
                   <span className="font-medium">
-                    {deliveryMethod === "PICKUP" ||
-                    standardDeliveryFeeKobo === 0 ? (
-                      <span className="text-green-600 dark:text-green-400">
-                        Free
-                      </span>
-                    ) : (
-                      formatNaira(standardDeliveryFeeKobo)
-                    )}
+                    {(() => {
+                      if (deliveryMethod === "PICKUP")
+                        return (
+                          <span className="text-green-600 dark:text-green-400">
+                            Free
+                          </span>
+                        );
+                      if (!effectiveState)
+                        return (
+                          <span className="text-muted-foreground text-xs">
+                            Select state
+                          </span>
+                        );
+                      if (effectiveDeliveryFee === 0)
+                        return (
+                          <span className="text-green-600 dark:text-green-400">
+                            Free
+                          </span>
+                        );
+                      return formatNaira(effectiveDeliveryFee);
+                    })()}
                   </span>
                 </div>
               )}

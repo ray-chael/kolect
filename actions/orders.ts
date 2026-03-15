@@ -8,6 +8,10 @@ import type { ActionResult } from "@/lib/types";
 import { MIN_INSTALLMENT_KOBO } from "@/lib/consts";
 import { prisma } from "@/lib/db";
 import { getSettingValue } from "@/actions/settings";
+import {
+  computeDeliveryFeeKobo,
+  parseDeliveryRates,
+} from "@/lib/utils/delivery-rates";
 
 function parseSelectionMap(
   value: FormDataEntryValue | null,
@@ -94,9 +98,31 @@ export async function createOrder(formData: FormData): Promise<ActionResult> {
     const deliveryMethod = parsed.data.deliveryMethod ?? "DELIVERY";
     let deliveryFeeKobo = 0;
     if (deliveryMethod === "DELIVERY") {
-      const feeNaira =
-        Number(await getSettingValue("standardDeliveryFee")) || 0;
-      deliveryFeeKobo = Math.round(feeNaira * 100); // naira → kobo
+      // Resolve the destination state + city/LGA for fee computation
+      let addrState = parsed.data.state ?? "";
+      let addrCity = parsed.data.city ?? "";
+      if (parsed.data.addressId) {
+        const addr = await prisma.deliveryAddress.findUnique({
+          where: { id: parsed.data.addressId },
+          select: { state: true, city: true },
+        });
+        addrState = addr?.state ?? "";
+        addrCity = addr?.city ?? "";
+      }
+
+      const [defaultFeeRaw, lagosRatesRaw, stateRatesRaw] = await Promise.all([
+        getSettingValue("defaultDeliveryFee"),
+        getSettingValue("lagosLgaRates"),
+        getSettingValue("stateDeliveryRates"),
+      ]);
+      const rates = parseDeliveryRates(
+        lagosRatesRaw || "{}",
+        stateRatesRaw || "{}",
+        Number(defaultFeeRaw) || 0,
+      );
+      deliveryFeeKobo = addrState
+        ? computeDeliveryFeeKobo(addrState, addrCity, rates)
+        : 0;
     }
 
     const order = await orderService.create({
