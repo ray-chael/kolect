@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
+import { signOut } from "@/lib/auth-client";
 
 const adminLinks = [
   { href: "/admin", label: "Dashboard" },
@@ -14,6 +15,11 @@ const adminLinks = [
 
 export function AdminMobileNav() {
   const [open, setOpen] = useState(false);
+
+  async function handleSignOut() {
+    await signOut();
+    window.location.href = "/login";
+  }
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -37,7 +43,11 @@ export function AdminMobileNav() {
   }, []);
 
   return (
-    <div ref={ref} className="relative lg:hidden" aria-label="Admin navigation menu">
+    <div
+      ref={ref}
+      className="relative lg:hidden"
+      aria-label="Admin navigation menu"
+    >
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close menu" : "Open menu"}
@@ -53,15 +63,25 @@ export function AdminMobileNav() {
           role="menu"
         >
           {adminLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                role="menuitem"
-                className="flex items-center px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
+            <a
+              key={link.href}
+              href={link.href}
+              role="menuitem"
+              className="flex items-center px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              {link.label}
+            </a>
+          ))}
+          <div className="border-t border-border/40">
+            <button
+              onClick={handleSignOut}
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
         </div>
       )}
     </div>

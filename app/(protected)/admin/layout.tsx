@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { AdminMobileNav } from "@/components/shared/admin-mobile-nav";
+import { AdminLogoutButton } from "@/components/shared/admin-logout-button";
 
 export default async function AdminLayout({
   children,
@@ -61,6 +62,9 @@ export default async function AdminLayout({
             >
               Settings
             </a>
+            <div className="ml-2 border-l border-border/40 pl-4">
+              <AdminLogoutButton />
+            </div>
           </nav>
           {/* Mobile hamburger */}
           <AdminMobileNav />

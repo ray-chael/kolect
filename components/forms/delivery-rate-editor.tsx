@@ -5,6 +5,68 @@ import { MapPin, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+export const LAGOS_LGAS = [
+  "Agege",
+  "Ajeromi-Ifelodun",
+  "Alimosho",
+  "Amuwo-Odofin",
+  "Apapa",
+  "Badagry",
+  "Epe",
+  "Eti-Osa",
+  "Ibeju-Lekki",
+  "Ifako-Ijaiye",
+  "Ikeja",
+  "Ikorodu",
+  "Kosofe",
+  "Lagos Island",
+  "Lagos Mainland",
+  "Mushin",
+  "Ojo",
+  "Oshodi-Isolo",
+  "Shomolu",
+  "Surulere",
+];
+
+export const NIGERIAN_STATES_EXCL_LAGOS = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
+
 interface RateRow {
   id: string;
   location: string;
@@ -37,6 +99,8 @@ function rowsToJson(rows: RateRow[]): string {
 interface DeliveryRateEditorProps {
   value: string;
   onChange: (json: string) => void;
+  /** When provided, location column renders a dropdown instead of a free-text input. */
+  options?: string[];
   placeholder?: string;
   disabled?: boolean;
 }
@@ -44,11 +108,13 @@ interface DeliveryRateEditorProps {
 export function DeliveryRateEditor({
   value,
   onChange,
+  options,
   placeholder = "Location name",
   disabled,
 }: DeliveryRateEditorProps) {
   const [rows, setRows] = useState<RateRow[]>(() => parseToRows(value));
   const isFirstRender = useRef(true);
+  const allOptionsUsed = options !== undefined && rows.length >= options.length;
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -107,13 +173,44 @@ export function DeliveryRateEditor({
             >
               <div className="flex items-center gap-2">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/40" />
-                <Input
-                  value={row.location}
-                  onChange={(e) => updateRow(row.id, "location", e.target.value)}
-                  placeholder={placeholder}
-                  disabled={disabled}
-                  className="h-8 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40"
-                />
+                {options ? (
+                  <select
+                    value={row.location}
+                    onChange={(e) =>
+                      updateRow(row.id, "location", e.target.value)
+                    }
+                    disabled={disabled}
+                    title="Select location"
+                    className="h-8 flex-1 border-0 bg-transparent text-sm outline-none focus:ring-0 cursor-pointer text-foreground disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-popover [&>option]:text-popover-foreground"
+                  >
+                    <option value="" disabled>
+                      Select location…
+                    </option>
+                    {options
+                      .filter(
+                        (opt) =>
+                          opt === row.location ||
+                          !rows.some(
+                            (r) => r.id !== row.id && r.location === opt,
+                          ),
+                      )
+                      .map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={row.location}
+                    onChange={(e) =>
+                      updateRow(row.id, "location", e.target.value)
+                    }
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    className="h-8 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40"
+                  />
+                )}
               </div>
               <div className="relative">
                 <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/60">
@@ -150,7 +247,7 @@ export function DeliveryRateEditor({
         variant="outline"
         size="sm"
         onClick={addRow}
-        disabled={disabled}
+        disabled={disabled || allOptionsUsed}
         className="h-8 gap-1.5 border-dashed text-xs text-muted-foreground hover:text-foreground"
       >
         <Plus className="h-3.5 w-3.5" />

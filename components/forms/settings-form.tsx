@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { updateSystemSettings } from "@/actions/settings";
 import type { SystemSetting } from "@/actions/settings";
-import { DeliveryRateEditor } from "@/components/forms/delivery-rate-editor";
+import {
+  DeliveryRateEditor,
+  LAGOS_LGAS,
+  NIGERIAN_STATES_EXCL_LAGOS,
+} from "@/components/forms/delivery-rate-editor";
 
 interface SettingsFormProps {
   settings: SystemSetting[];
@@ -118,8 +122,10 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                       <DeliveryRateEditor
                         value={values[key] ?? "{}"}
                         onChange={(json) => handleChange(key, json)}
-                        placeholder={
-                          key === "lagosLgaRates" ? "e.g. Ikeja" : "e.g. Abuja"
+                        options={
+                          key === "lagosLgaRates"
+                            ? LAGOS_LGAS
+                            : NIGERIAN_STATES_EXCL_LAGOS
                         }
                         disabled={isPending}
                       />
