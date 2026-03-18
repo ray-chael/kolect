@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatNaira } from "@/lib/types";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus } from "@/app/generated/prisma/client";
 import { AdminOrdersFilter } from "@/components/shared/admin-orders-filter";
 
 export const dynamic = "force-dynamic";
