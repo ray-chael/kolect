@@ -21,7 +21,11 @@ export const productService = {
       include: {
         category: true,
         flashSales: {
-          where: { isActive: true, startsAt: { lte: new Date() }, endsAt: { gte: new Date() } },
+          where: {
+            isActive: true,
+            startsAt: { lte: new Date() },
+            endsAt: { gte: new Date() },
+          },
           orderBy: { salePrice: "asc" },
           take: 1,
         },
@@ -39,7 +43,11 @@ export const productService = {
       include: {
         category: true,
         flashSales: {
-          where: { isActive: true, startsAt: { lte: new Date() }, endsAt: { gte: new Date() } },
+          where: {
+            isActive: true,
+            startsAt: { lte: new Date() },
+            endsAt: { gte: new Date() },
+          },
           orderBy: { salePrice: "asc" },
           take: 1,
         },
@@ -128,6 +136,68 @@ export const productService = {
     return prisma.product.update({
       where: { id },
       data: productData,
+    });
+  },
+
+  /** Paginated search for the public storefront */
+  async search(options: {
+    q?: string;
+    categoryId?: string;
+    skip?: number;
+    take?: number;
+  }) {
+    const take = options.take ?? 12;
+    const skip = options.skip ?? 0;
+    const where: Prisma.ProductWhereInput = {
+      status: "AVAILABLE",
+      ...(options.categoryId ? { categoryId: options.categoryId } : {}),
+      ...(options.q
+        ? { name: { contains: options.q, mode: "insensitive" } }
+        : {}),
+    };
+    const [items, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          category: true,
+          flashSales: {
+            where: {
+              isActive: true,
+              startsAt: { lte: new Date() },
+              endsAt: { gte: new Date() },
+            },
+            orderBy: { salePrice: "asc" },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.product.count({ where }),
+    ]);
+    return { items, total };
+  },
+
+  /** All products for admin — no status filter by default, supports search */
+  async adminGetAll(options?: { q?: string; status?: string }) {
+    const where: Prisma.ProductWhereInput = {
+      ...(options?.status
+        ? {
+            status: options.status as
+              | "AVAILABLE"
+              | "OUT_OF_STOCK"
+              | "DISCONTINUED",
+          }
+        : {}),
+      ...(options?.q
+        ? { name: { contains: options.q, mode: "insensitive" } }
+        : {}),
+    };
+    return prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { createdAt: "desc" },
     });
   },
 };
