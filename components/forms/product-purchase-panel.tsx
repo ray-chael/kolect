@@ -467,8 +467,8 @@ export function ProductPurchasePanel({
                 Contribute to buy
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Start with {formatNaira(contributionPlan.depositAmount)} and
-                spread the balance up to 3 months.
+                Lock the price with a 20% deposit and pay the rest in
+                installments.
               </p>
             </button>
           </div>

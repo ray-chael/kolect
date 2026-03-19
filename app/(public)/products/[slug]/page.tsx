@@ -182,25 +182,11 @@ export default async function ProductDetailPage({
                     endsAt={activeSale.endsAt.toISOString()}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  or start with{" "}
-                  <span className="font-medium text-primary">
-                    {formatNaira(deposit)}
-                  </span>{" "}
-                  deposit (20%)
-                </p>
               </>
             ) : (
               <>
                 <p className="font-display text-3xl md:text-4xl text-foreground">
                   {formatNaira(product.markupPrice)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  or start with{" "}
-                  <span className="font-medium text-primary">
-                    {formatNaira(deposit)}
-                  </span>{" "}
-                  deposit (20%)
                 </p>
               </>
             )}
