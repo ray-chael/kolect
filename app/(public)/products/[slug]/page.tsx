@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
 import { FlashSaleCountdown } from "@/components/shared/flash-sale-countdown";
+import { WishlistToggleButton } from "@/components/shared/wishlist-toggle-button";
 import { coerceProductCustomFields } from "@/lib/types";
 import { getSession } from "@/lib/session";
 import { getUserAddresses } from "@/actions/addresses";
@@ -138,12 +139,15 @@ export default async function ProductDetailPage({
             <h1 className="font-display text-3xl md:text-4xl tracking-tight">
               {product.name}
             </h1>
-            {product.description && (
-              <div
-                className="mt-3 prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: product.description }}
-              />
-            )}
+            <div className="flex items-start justify-between gap-3 mt-1">
+              {product.description && (
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground flex-1"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
+              )}
+              <WishlistToggleButton productId={product.id} />
+            </div>
           </div>
 
           <div className="space-y-1">

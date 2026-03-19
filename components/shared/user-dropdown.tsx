@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth-client";
-import { LogOut, User, ShoppingBag } from "lucide-react";
+import { LogOut, User, ShoppingBag, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
 
@@ -90,6 +90,24 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
             >
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
               My Orders
+            </Link>
+            <Link
+              href="/cart"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              My Cart
+            </Link>
+            <Link
+              href="/wishlist"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <Heart className="h-4 w-4 text-muted-foreground" />
+              My Wishlist
             </Link>
           </div>
 

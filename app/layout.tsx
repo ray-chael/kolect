@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { Toaster } from "@/components/shared/toaster";
+import { CartProvider } from "@/contexts/cart-context";
+import { WishlistProvider } from "@/contexts/wishlist-context";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -40,8 +42,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <CartProvider>
+            <WishlistProvider>
+              {children}
+              <Toaster />
+            </WishlistProvider>
+          </CartProvider>
           <Analytics />
           <SpeedInsights />
         </ThemeProvider>

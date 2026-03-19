@@ -1,5 +1,7 @@
 import { AuthNav } from "@/components/shared/auth-nav";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { CartIcon } from "@/components/shared/cart-icon";
+import { WishlistIcon } from "@/components/shared/wishlist-icon";
 import Link from "next/link";
 
 export default function PublicLayout({
@@ -11,7 +13,10 @@ export default function PublicLayout({
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="font-display text-xl tracking-tight text-foreground">
+          <Link
+            href="/"
+            className="font-display text-xl tracking-tight text-foreground"
+          >
             Ade&apos;s Kolekt
           </Link>
           <nav className="flex items-center gap-3 sm:gap-6">
@@ -22,6 +27,8 @@ export default function PublicLayout({
               Collection
             </Link>
             <AuthNav />
+            <WishlistIcon />
+            <CartIcon />
             <ThemeToggle />
           </nav>
         </div>
@@ -34,11 +41,22 @@ export default function PublicLayout({
           <div className="flex flex-col items-center gap-4 text-center">
             <p className="font-display text-lg">Ade&apos;s Kolekt</p>
             <p className="text-sm text-muted-foreground max-w-md">
-              Curated goods, flexible payments. Pay at your pace, we deliver with care.
+              Curated goods, flexible payments. Pay at your pace, we deliver
+              with care.
             </p>
             <div className="flex gap-6 text-xs text-muted-foreground">
-              <Link href="/products" className="hover:text-foreground transition-colors">Collection</Link>
-              <Link href="/register" className="hover:text-foreground transition-colors">Get Started</Link>
+              <Link
+                href="/products"
+                className="hover:text-foreground transition-colors"
+              >
+                Collection
+              </Link>
+              <Link
+                href="/register"
+                className="hover:text-foreground transition-colors"
+              >
+                Get Started
+              </Link>
             </div>
           </div>
         </div>

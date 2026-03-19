@@ -2,10 +2,19 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import Image from "next/image";
-import { Search, SlidersHorizontal, X, Loader2 } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  Loader2,
+  ShoppingCart,
+  Heart,
+} from "lucide-react";
 import { ProductVideoThumbnail } from "./product-video-thumbnail";
 import { fetchProductsAction } from "@/actions/products";
 import { formatNaira } from "@/lib/types";
+import { useCart } from "@/contexts/cart-context";
+import { useWishlist } from "@/contexts/wishlist-context";
 
 const PAGE_SIZE = 12;
 
@@ -63,7 +72,9 @@ export function ProductsClient({
   const skipRef = useRef(initialItems.length);
   const filterRef = useRef({ q: initialQ, categoryId: initialCategoryId });
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const loadingMoreRef = useRef(false);
 
   const hasMore = items.length < currentTotal;
@@ -141,6 +152,8 @@ export function ProductsClient({
   }
 
   const hasActiveFilters = !!(q.trim() || categoryId);
+  const { addItem } = useCart();
+  const { isWishlisted, toggle: toggleWishlist } = useWishlist();
 
   return (
     <div>
@@ -252,6 +265,37 @@ export function ProductsClient({
                     {product.flashSales[0].label}
                   </span>
                 )}
+                {/* Cart & Wishlist buttons */}
+                <div className="absolute right-3 top-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleWishlist(product.id);
+                    }}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm shadow-sm hover:bg-background transition-colors ${
+                      isWishlisted(product.id)
+                        ? "text-destructive"
+                        : "text-muted-foreground hover:text-destructive"
+                    }`}
+                    aria-label="Toggle wishlist"
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${isWishlisted(product.id) ? "fill-current" : ""}`}
+                    />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      addItem(product.id, 1);
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm shadow-sm text-muted-foreground hover:text-primary hover:bg-background transition-colors"
+                    aria-label="Add to cart"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <h3 className="font-semibold tracking-tight transition-colors duration-300 group-hover:text-primary">

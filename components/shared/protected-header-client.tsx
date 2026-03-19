@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { UserDropdown } from "@/components/shared/user-dropdown";
 import { NotificationBell } from "@/components/shared/notification-bell";
+import { CartIcon } from "@/components/shared/cart-icon";
+import { WishlistIcon } from "@/components/shared/wishlist-icon";
 
 interface ProtectedHeaderClientProps {
   userName: string;
@@ -38,6 +40,8 @@ export function ProtectedHeaderClient({
             Shop
           </a>
           <ThemeToggle />
+          <WishlistIcon />
+          <CartIcon />
           <NotificationBell initialUnreadCount={initialUnreadCount} />
           <UserDropdown name={userName} email={userEmail} />
         </nav>

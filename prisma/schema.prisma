@@ -28,6 +28,8 @@ model User {
   orders        Order[]
   transactions  Transaction[]
   notifications Notification[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
 
   @@map("users")
 }
@@ -160,8 +162,10 @@ model Product {
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
-  orders     Order[]
-  flashSales  FlashSale[]
+  orders        Order[]
+  flashSales    FlashSale[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
 
   @@map("products")
 }
@@ -347,4 +351,34 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// ─── Cart & Wishlist ──────────────────────────────────────────────
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_items")
 }
