@@ -2,9 +2,7 @@ import { productService } from "@/lib/services/product.service";
 import { pickupLocationService } from "@/lib/services/pickup-location.service";
 import { formatNaira } from "@/lib/types";
 import { notFound } from "next/navigation";
-import { calculateDeposit } from "@/lib/utils";
 import Image from "next/image";
-import { InstallmentCalculator } from "./installment-calculator";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
 import { FlashSaleCountdown } from "@/components/shared/flash-sale-countdown";
 import { coerceProductCustomFields } from "@/lib/types";
@@ -29,11 +27,6 @@ export default async function ProductDetailPage({
   }
 
   const activeSale = product.flashSales?.[0] ?? null;
-  const effectivePrice = activeSale
-    ? activeSale.salePrice
-    : product.markupPrice;
-  const deposit = calculateDeposit(effectivePrice);
-  const remaining = effectivePrice - deposit;
   const customFields = coerceProductCustomFields(product.customFields);
   const pickupLocations = await pickupLocationService.getActive();
   const session = await getSession();
@@ -96,28 +89,34 @@ export default async function ProductDetailPage({
                   ))}
                 </div>
               )}
+              {/* Videos below images */}
+              {product.videos && product.videos.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">
+                    Videos
+                  </h3>
+                  {product.videos.map((url) => (
+                    <video
+                      key={url}
+                      src={url}
+                      controls
+                      preload="metadata"
+                      className="w-full rounded-xl border border-border/60 bg-black"
+                    />
+                  ))}
+                </div>
+              )}
             </>
+          ) : product.videos && product.videos.length > 0 ? (
+            <video
+              src={product.videos[0]}
+              controls
+              preload="metadata"
+              className="w-full aspect-square object-cover rounded-2xl border border-border/60 bg-black"
+            />
           ) : (
             <div className="aspect-square rounded-2xl bg-muted/60 flex items-center justify-center">
               <span className="text-muted-foreground text-sm">No image</span>
-            </div>
-          )}
-
-          {/* Videos */}
-          {product.videos && product.videos.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <h3 className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">
-                Videos
-              </h3>
-              {product.videos.map((url) => (
-                <video
-                  key={url}
-                  src={url}
-                  controls
-                  preload="metadata"
-                  className="w-full rounded-xl border border-border/60 bg-black"
-                />
-              ))}
             </div>
           )}
         </div>
@@ -224,15 +223,6 @@ export default async function ProductDetailPage({
             </p>
           )}
         </div>
-      </div>
-
-      <div className="mt-10">
-        <InstallmentCalculator
-          totalPrice={effectivePrice}
-          deposit={deposit}
-          remaining={remaining}
-          priceLockDays={product.priceLockDays}
-        />
       </div>
     </div>
   );

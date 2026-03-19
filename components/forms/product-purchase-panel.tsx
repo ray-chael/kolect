@@ -377,28 +377,33 @@ export function ProductPurchasePanel({
       ) {
         const orderId = String(result.data.orderId);
 
+        const paymentFormData = new FormData();
+        paymentFormData.set("orderId", orderId);
+
         if (purchaseMode === "buy-now") {
-          const paymentFormData = new FormData();
-          paymentFormData.set("orderId", orderId);
           paymentFormData.set("amount", String(grandTotal));
+        } else {
+          // Contribute mode — collect 20% deposit upfront
+          paymentFormData.set("amount", String(contributionPlan.depositAmount));
+        }
 
-          const paymentResult = await initiatePayment(paymentFormData);
-          if (!paymentResult.success) {
-            toast.error(paymentResult.message ?? "Unable to start payment.");
-            window.location.href = `/orders/${orderId}`;
-            return;
-          }
-
-          toast.success("Order created. Redirecting to secure checkout...");
-          if (paymentResult.data?.authorizationUrl) {
-            window.location.href = paymentResult.data.authorizationUrl;
-            return;
-          }
+        const paymentResult = await initiatePayment(paymentFormData);
+        if (!paymentResult.success) {
+          toast.error(paymentResult.message ?? "Unable to start payment.");
+          window.location.href = `/orders/${orderId}`;
+          return;
         }
 
         toast.success(
-          "Order created. Complete your deposit to lock the price.",
+          purchaseMode === "buy-now"
+            ? "Order created. Redirecting to secure checkout..."
+            : "Order created. Redirecting to pay your 20% deposit...",
         );
+        if (paymentResult.data?.authorizationUrl) {
+          window.location.href = paymentResult.data.authorizationUrl;
+          return;
+        }
+
         window.location.href = `/orders/${orderId}`;
       }
     });
@@ -420,18 +425,7 @@ export function ProductPurchasePanel({
           </span>
         </div>
       )}
-      <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-primary">
-          Configure
-        </p>
-        <h3 className="mt-2 font-display text-2xl tracking-tight">
-          Choose your setup
-        </h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Pick the right variant for {productName}, then choose whether to pay
-          outright now or switch to contribute-to-buy.
-        </p>
-      </div>
+      <h3 className="font-display text-xl tracking-tight">Choose your setup</h3>
 
       <form action={handleSubmit} className="space-y-6">
         <div className="space-y-2">
@@ -449,9 +443,8 @@ export function ProductPurchasePanel({
               <p className="text-sm font-semibold tracking-tight">
                 Buy immediately
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Pay the full {formatNaira(effectiveTotal)} now. This is the
-                default option.
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {formatNaira(effectiveTotal)} full payment
               </p>
             </button>
             <button
@@ -466,28 +459,21 @@ export function ProductPurchasePanel({
               <p className="text-sm font-semibold tracking-tight">
                 Contribute to buy
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Lock the price with a 20% deposit and pay the rest in
-                installments.
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                20% deposit + installments
               </p>
             </button>
           </div>
         </div>
 
         <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
-          <div>
-            <Label>Fulfillment</Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Delivery requires the shopper address. Pickup lets the customer
-              collect from a registered location.
-            </p>
-          </div>
+          <Label>Fulfillment</Label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => handleDeliveryMethodChange("DELIVERY")}
-              className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+              className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
                 deliveryMethod === "DELIVERY"
                   ? "border-primary bg-primary/5"
                   : "border-border/60 bg-background hover:border-primary/30"
@@ -496,27 +482,18 @@ export function ProductPurchasePanel({
               <p className="text-sm font-semibold tracking-tight">
                 Door delivery
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Collect the shopper address now so dispatch is not blocked
-                later.
-              </p>
             </button>
             <button
               type="button"
               disabled={pickupLocations.length === 0}
               onClick={() => handleDeliveryMethodChange("PICKUP")}
-              className={`rounded-2xl border px-4 py-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`rounded-2xl border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 deliveryMethod === "PICKUP"
                   ? "border-primary bg-primary/5"
                   : "border-border/60 bg-background hover:border-primary/30"
               }`}
             >
               <p className="text-sm font-semibold tracking-tight">Pickup</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {pickupLocations.length > 0
-                  ? "Let the shopper pick a collection point instead of entering a delivery address."
-                  : "No pickup locations are active yet."}
-              </p>
             </button>
           </div>
 
@@ -823,9 +800,9 @@ export function ProductPurchasePanel({
             </p>
           </div>
 
-          {purchaseMode === "contribute" ? (
+          {purchaseMode === "contribute" && (
             <div className="space-y-2">
-              <Label>Contribution cadence</Label>
+              <Label>Cadence</Label>
               <div className="flex flex-wrap gap-2">
                 {CADENCE_OPTIONS.map((option) => (
                   <button
@@ -843,35 +820,16 @@ export function ProductPurchasePanel({
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>Checkout</Label>
-              <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                You will be redirected to Paystack to pay the full amount
-                immediately.
-              </div>
-            </div>
           )}
         </div>
 
         {purchaseMode === "contribute" && (
           <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="contribution-duration">Duration</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Choose a {contributionCadence} plan that finishes within 3
-                  months.
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium tracking-tight">
-                  {contributionPlan.durationLabel}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Longer plans cost more overall.
-                </p>
-              </div>
+              <Label htmlFor="contribution-duration">Duration</Label>
+              <p className="font-medium tracking-tight text-sm">
+                {contributionPlan.durationLabel}
+              </p>
             </div>
 
             <input
@@ -1111,8 +1069,8 @@ export function ProductPurchasePanel({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Price stays locked for {priceLockDays} days after your deposit
-                is confirmed.
+                You will pay {formatNaira(contributionPlan.depositAmount)}{" "}
+                deposit now. Price locked for {priceLockDays} days.
               </p>
             </>
           ) : (
@@ -1194,7 +1152,7 @@ export function ProductPurchasePanel({
 
         {hasAcceptedTerms ? (
           <p className="text-xs text-muted-foreground">
-            You have already agreed to the{" "}
+            You have agreed to the{" "}
             <a
               href="/terms"
               className="font-medium text-primary hover:underline"
@@ -1204,38 +1162,26 @@ export function ProductPurchasePanel({
             .
           </p>
         ) : (
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
-            <div>
-              <Label htmlFor="terms-accepted">Terms and Conditions</Label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Review the service agreement before you pay. The 20% commitment
-                deposit is non-refundable and each product carries its own
-                price-lock period.
-              </p>
-            </div>
-            <label
-              htmlFor="terms-accepted"
-              className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background px-4 py-3 text-sm"
-            >
-              <Checkbox
-                id="terms-accepted"
-                checked={termsAccepted}
-                onCheckedChange={(v) => setTermsAccepted(v === true)}
-                className="mt-0.5"
-              />
-              <span className="text-muted-foreground">
-                I agree to the 20% non-refundable deposit, the applicable
-                price-lock period for this product, and the full terms in{" "}
-                <a
-                  href="/terms"
-                  className="font-medium text-primary hover:underline"
-                >
-                  the service agreement
-                </a>
-                .
-              </span>
-            </label>
-          </div>
+          <label
+            htmlFor="terms-accepted"
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm"
+          >
+            <Checkbox
+              id="terms-accepted"
+              checked={termsAccepted}
+              onCheckedChange={(v) => setTermsAccepted(v === true)}
+              className="mt-0.5"
+            />
+            <span className="text-muted-foreground">
+              I agree to the{" "}
+              <a
+                href="/terms"
+                className="font-medium text-primary hover:underline"
+              >
+                terms and conditions
+              </a>
+            </span>
+          </label>
         )}
 
         {session ? (
