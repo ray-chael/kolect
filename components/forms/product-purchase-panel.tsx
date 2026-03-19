@@ -121,14 +121,12 @@ export function ProductPurchasePanel({
 }: ProductPurchasePanelProps) {
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
-  const [purchaseMode, setPurchaseMode] = useState<PurchaseMode>("buy-now");
+  const [purchaseMode, setPurchaseMode] = useState<PurchaseMode | null>(null);
   const [quantity, setQuantity] = useState(moq);
   const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
     "DELIVERY",
   );
-  const [pickupLocationId, setPickupLocationId] = useState(
-    pickupLocations[0]?.id ?? "",
-  );
+  const [pickupLocationId, setPickupLocationId] = useState("");
   const [contributionCadence, setContributionCadence] =
     useState<ContributionCadence>("monthly");
   const [contributionDuration, setContributionDuration] = useState(1);
@@ -256,6 +254,21 @@ export function ProductPurchasePanel({
   const selectedInstallmentMonths =
     purchaseMode === "buy-now" ? 1 : contributionPlan.installmentMonths;
   const durationLimits = getContributionDurationLimits(contributionCadence);
+
+  const fulfillmentReady = useMemo(() => {
+    if (!purchaseMode) return false;
+    if (deliveryMethod === "PICKUP") return !!pickupLocationId;
+    if (selectedAddressId !== "new") return true;
+    return !!(state && city);
+  }, [
+    purchaseMode,
+    deliveryMethod,
+    pickupLocationId,
+    selectedAddressId,
+    state,
+    city,
+  ]);
+
   const selectedPickupLocation = pickupLocations.find(
     (location) => location.id === pickupLocationId,
   );
@@ -319,6 +332,11 @@ export function ProductPurchasePanel({
   }
 
   function handleSubmit(formData: FormData) {
+    if (!purchaseMode) {
+      toast.error("Please select a purchase option.");
+      return;
+    }
+
     if (requiredFieldErrors.length > 0) {
       toast.error(
         `Complete required fields: ${requiredFieldErrors.join(", ")}`,
@@ -466,745 +484,766 @@ export function ProductPurchasePanel({
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
-          <Label>Fulfillment</Label>
+        {purchaseMode && (
+          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <Label>Fulfillment</Label>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => handleDeliveryMethodChange("DELIVERY")}
-              className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
-                deliveryMethod === "DELIVERY"
-                  ? "border-primary bg-primary/5"
-                  : "border-border/60 bg-background hover:border-primary/30"
-              }`}
-            >
-              <p className="text-sm font-semibold tracking-tight">
-                Door delivery
-              </p>
-            </button>
-            <button
-              type="button"
-              disabled={pickupLocations.length === 0}
-              onClick={() => handleDeliveryMethodChange("PICKUP")}
-              className={`rounded-2xl border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                deliveryMethod === "PICKUP"
-                  ? "border-primary bg-primary/5"
-                  : "border-border/60 bg-background hover:border-primary/30"
-              }`}
-            >
-              <p className="text-sm font-semibold tracking-tight">Pickup</p>
-            </button>
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => handleDeliveryMethodChange("DELIVERY")}
+                className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                  deliveryMethod === "DELIVERY"
+                    ? "border-primary bg-primary/5"
+                    : "border-border/60 bg-background hover:border-primary/30"
+                }`}
+              >
+                <p className="text-sm font-semibold tracking-tight">
+                  Door delivery
+                </p>
+              </button>
+              <button
+                type="button"
+                disabled={pickupLocations.length === 0}
+                onClick={() => handleDeliveryMethodChange("PICKUP")}
+                className={`rounded-2xl border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  deliveryMethod === "PICKUP"
+                    ? "border-primary bg-primary/5"
+                    : "border-border/60 bg-background hover:border-primary/30"
+                }`}
+              >
+                <p className="text-sm font-semibold tracking-tight">Pickup</p>
+              </button>
+            </div>
 
-          {deliveryMethod === "DELIVERY" ? (
-            <div className="space-y-4">
-              {savedAddresses.length > 0 && (
-                <RadioGroup
-                  value={selectedAddressId}
-                  onValueChange={setSelectedAddressId}
-                  className="space-y-2"
-                >
-                  {savedAddresses.map((addr) => (
+            {deliveryMethod === "DELIVERY" ? (
+              <div className="space-y-4">
+                {savedAddresses.length > 0 && (
+                  <RadioGroup
+                    value={selectedAddressId}
+                    onValueChange={setSelectedAddressId}
+                    className="space-y-2"
+                  >
+                    {savedAddresses.map((addr) => (
+                      <label
+                        key={addr.id}
+                        onClick={() => setSelectedAddressId(addr.id)}
+                        className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                          selectedAddressId === addr.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border/60 bg-background hover:border-primary/30"
+                        }`}
+                      >
+                        <RadioGroupItem value={addr.id} className="mt-1" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              {addr.label}
+                            </span>
+                            {addr.isDefault && (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {addr.recipientName} · {addr.phone}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {addr.addressLine1}
+                            {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
+                            {`, ${addr.city}, ${addr.state}`}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
                     <label
-                      key={addr.id}
-                      onClick={() => setSelectedAddressId(addr.id)}
-                      className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
-                        selectedAddressId === addr.id
+                      onClick={() => setSelectedAddressId("new")}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                        selectedAddressId === "new"
                           ? "border-primary bg-primary/5"
                           : "border-border/60 bg-background hover:border-primary/30"
                       }`}
                     >
-                      <RadioGroupItem value={addr.id} className="mt-1" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {addr.label}
-                          </span>
-                          {addr.isDefault && (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                              Default
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {addr.recipientName} · {addr.phone}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {addr.addressLine1}
-                          {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
-                          {`, ${addr.city}, ${addr.state}`}
-                        </p>
-                      </div>
+                      <RadioGroupItem value="new" />
+                      <span className="text-sm font-medium">
+                        Use a new address
+                      </span>
                     </label>
-                  ))}
-                  <label
-                    onClick={() => setSelectedAddressId("new")}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
-                      selectedAddressId === "new"
-                        ? "border-primary bg-primary/5"
-                        : "border-border/60 bg-background hover:border-primary/30"
-                    }`}
-                  >
-                    <RadioGroupItem value="new" />
-                    <span className="text-sm font-medium">
-                      Use a new address
-                    </span>
-                  </label>
-                </RadioGroup>
-              )}
+                  </RadioGroup>
+                )}
 
-              {selectedAddressId === "new" && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="address-label">Save address as</Label>
-                    <Input
-                      id="address-label"
-                      value={addressLabel}
-                      onChange={(event) => setAddressLabel(event.target.value)}
-                      placeholder="Home, Office, etc."
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="recipient-name">Recipient name</Label>
-                    <Input
-                      id="recipient-name"
-                      value={recipientName}
-                      onChange={(event) => setRecipientName(event.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="address-line-1">Address line 1</Label>
-                    <Input
-                      id="address-line-1"
-                      value={addressLine1}
-                      onChange={(event) => setAddressLine1(event.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="address-line-2">
-                      Address line 2 (optional)
-                    </Label>
-                    <Input
-                      id="address-line-2"
-                      value={addressLine2}
-                      onChange={(event) => setAddressLine2(event.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
-                    <Select value={state} onValueChange={handleStateChange}>
-                      <SelectTrigger id="state" className="w-full rounded-xl">
-                        <SelectValue placeholder="Choose a state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {NIGERIAN_STATES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* City / LGA — LGA selector for Lagos, free-text otherwise */}
-                  {state === "Lagos" ? (
+                {selectedAddressId === "new" && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="address-label">Save address as</Label>
+                      <Input
+                        id="address-label"
+                        value={addressLabel}
+                        onChange={(event) =>
+                          setAddressLabel(event.target.value)
+                        }
+                        placeholder="Home, Office, etc."
+                        className="rounded-xl"
+                      />
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lga">LGA / Area</Label>
-                      <Select
-                        value={city}
-                        onValueChange={(v) => setCity(v ?? "")}
-                      >
-                        <SelectTrigger id="lga" className="w-full rounded-xl">
-                          <SelectValue
-                            placeholder={
-                              lagosLgas.length === 0
-                                ? "Loading areas…"
-                                : "Choose your LGA"
-                            }
-                          />
+                      <Label htmlFor="recipient-name">Recipient name</Label>
+                      <Input
+                        id="recipient-name"
+                        value={recipientName}
+                        onChange={(event) =>
+                          setRecipientName(event.target.value)
+                        }
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="address-line-1">Address line 1</Label>
+                      <Input
+                        id="address-line-1"
+                        value={addressLine1}
+                        onChange={(event) =>
+                          setAddressLine1(event.target.value)
+                        }
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="address-line-2">
+                        Address line 2 (optional)
+                      </Label>
+                      <Input
+                        id="address-line-2"
+                        value={addressLine2}
+                        onChange={(event) =>
+                          setAddressLine2(event.target.value)
+                        }
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Select value={state} onValueChange={handleStateChange}>
+                        <SelectTrigger id="state" className="w-full rounded-xl">
+                          <SelectValue placeholder="Choose a state" />
                         </SelectTrigger>
                         <SelectContent>
-                          {lagosLgas.map((lga) => (
-                            <SelectItem key={lga} value={lga}>
-                              {lga}
+                          {NIGERIAN_STATES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={city}
-                        onChange={(event) => setCity(event.target.value)}
-                        className="rounded-xl"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {speedafEnabled && (
-                <div className="space-y-2">
-                  <Label>Delivery provider</Label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => setLogisticsProvider("INTERNAL")}
-                      className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
-                        logisticsProvider === "INTERNAL"
-                          ? "border-primary bg-primary/5"
-                          : "border-border/60 bg-background hover:border-primary/30"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold tracking-tight">
-                        Standard delivery
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Handled in-house by our team.
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLogisticsProvider("SPEEDAF")}
-                      className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
-                        logisticsProvider === "SPEEDAF"
-                          ? "border-primary bg-primary/5"
-                          : "border-border/60 bg-background hover:border-primary/30"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold tracking-tight">
-                        Speedaf Express
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Fast door-to-door delivery via Speedaf courier.
-                      </p>
-                      {logisticsProvider === "SPEEDAF" && (
-                        <p className="mt-2 text-xs font-medium">
-                          {speedafQuoteLoading ? (
-                            <span className="text-muted-foreground animate-pulse">
-                              Getting rate…
-                            </span>
-                          ) : speedafQuote ? (
-                            <span className="text-primary">
-                              {new Intl.NumberFormat("en-NG", {
-                                style: "currency",
-                                currency: speedafQuote.currency,
-                                minimumFractionDigits: 0,
-                              }).format(speedafQuote.fee)}{" "}
-                              shipping
-                            </span>
-                          ) : speedafQuoteError ? (
-                            <span className="text-destructive">
-                              {speedafQuoteError}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Select a delivery state to see rate
-                            </span>
-                          )}
-                        </p>
-                      )}
-                    </button>
+                    {/* City / LGA — LGA selector for Lagos, free-text otherwise */}
+                    {state === "Lagos" ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="lga">LGA / Area</Label>
+                        <Select
+                          value={city}
+                          onValueChange={(v) => setCity(v ?? "")}
+                        >
+                          <SelectTrigger id="lga" className="w-full rounded-xl">
+                            <SelectValue
+                              placeholder={
+                                lagosLgas.length === 0
+                                  ? "Loading areas…"
+                                  : "Choose your LGA"
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lagosLgas.map((lga) => (
+                              <SelectItem key={lga} value={lga}>
+                                {lga}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          value={city}
+                          onChange={(event) => setCity(event.target.value)}
+                          className="rounded-xl"
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="pickup-location">Pickup location</Label>
-                <Select
-                  value={pickupLocationId}
-                  onValueChange={(v) => setPickupLocationId(v ?? "")}
-                >
-                  <SelectTrigger
-                    id="pickup-location"
-                    className="w-full rounded-xl"
-                  >
-                    <SelectValue placeholder="Choose a pickup location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pickupLocations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name} - {location.city}, {location.state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                )}
+
+                {speedafEnabled && (
+                  <div className="space-y-2">
+                    <Label>Delivery provider</Label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setLogisticsProvider("INTERNAL")}
+                        className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                          logisticsProvider === "INTERNAL"
+                            ? "border-primary bg-primary/5"
+                            : "border-border/60 bg-background hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold tracking-tight">
+                          Standard delivery
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Handled in-house by our team.
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLogisticsProvider("SPEEDAF")}
+                        className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                          logisticsProvider === "SPEEDAF"
+                            ? "border-primary bg-primary/5"
+                            : "border-border/60 bg-background hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold tracking-tight">
+                          Speedaf Express
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Fast door-to-door delivery via Speedaf courier.
+                        </p>
+                        {logisticsProvider === "SPEEDAF" && (
+                          <p className="mt-2 text-xs font-medium">
+                            {speedafQuoteLoading ? (
+                              <span className="text-muted-foreground animate-pulse">
+                                Getting rate…
+                              </span>
+                            ) : speedafQuote ? (
+                              <span className="text-primary">
+                                {new Intl.NumberFormat("en-NG", {
+                                  style: "currency",
+                                  currency: speedafQuote.currency,
+                                  minimumFractionDigits: 0,
+                                }).format(speedafQuote.fee)}{" "}
+                                shipping
+                              </span>
+                            ) : speedafQuoteError ? (
+                              <span className="text-destructive">
+                                {speedafQuoteError}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                Select a delivery state to see rate
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {selectedPickupLocation && (
-                <div className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm">
-                  <p className="font-medium tracking-tight">
-                    {selectedPickupLocation.name}
-                  </p>
-                  <p className="mt-1 text-muted-foreground">
-                    {selectedPickupLocation.addressLine1}
-                    {selectedPickupLocation.addressLine2
-                      ? `, ${selectedPickupLocation.addressLine2}`
-                      : ""}
-                    {`, ${selectedPickupLocation.city}, ${selectedPickupLocation.state}`}
-                  </p>
-                  {(selectedPickupLocation.contactName ||
-                    selectedPickupLocation.contactPhone) && (
-                    <p className="mt-1 text-muted-foreground">
-                      {selectedPickupLocation.contactName ?? "Pickup contact"}
-                      {selectedPickupLocation.contactPhone
-                        ? ` • ${selectedPickupLocation.contactPhone}`
-                        : ""}
-                    </p>
-                  )}
-                  {selectedPickupLocation.pickupInstructions && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {selectedPickupLocation.pickupInstructions}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min={moq}
-              value={quantity}
-              onChange={(event) =>
-                setQuantity(Math.max(moq, Number(event.target.value) || moq))
-              }
-              className="rounded-xl"
-            />
-            <p className="text-xs text-muted-foreground">
-              Minimum order quantity: {moq}
-            </p>
-          </div>
-
-          {purchaseMode === "contribute" && (
-            <div className="space-y-2">
-              <Label>Cadence</Label>
-              <div className="flex flex-wrap gap-2">
-                {CADENCE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleCadenceChange(option.value)}
-                    className={`rounded-full px-3 py-2 text-sm transition-colors ${
-                      contributionCadence === option.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/60 text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {purchaseMode === "contribute" && (
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="contribution-duration">Duration</Label>
-              <p className="font-medium tracking-tight text-sm">
-                {contributionPlan.durationLabel}
-              </p>
-            </div>
-
-            <input
-              id="contribution-duration"
-              type="range"
-              title="Contribution duration"
-              aria-label="Contribution duration"
-              min={durationLimits.min}
-              max={durationLimits.max}
-              step={durationLimits.step}
-              value={contributionPlan.duration}
-              onChange={(event) =>
-                setContributionDuration(
-                  clampContributionDuration(
-                    contributionCadence,
-                    Number(event.target.value),
-                  ),
-                )
-              }
-              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted"
-            />
-
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>
-                Min {durationLimits.min} {durationLimits.unit}
-              </span>
-              <span>
-                Max {durationLimits.max} {durationLimits.unit}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {colors.length > 0 && (
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-                    selectedColor === color
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border/60 bg-background hover:border-primary/40"
-                  }`}
-                >
-                  {color}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {sizes.length > 0 && (
-          <div className="space-y-2">
-            <Label>Size</Label>
-            <div className="flex flex-wrap gap-2">
-              {sizes.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => setSelectedSize(size)}
-                  className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-                    selectedSize === size
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border/60 bg-background hover:border-primary/40"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {customFields.length > 0 && (
-          <div className="space-y-4">
-            {customFields.map((field) => (
-              <div key={field.id} className="space-y-2">
-                <Label htmlFor={field.id}>
-                  {field.label}
-                  {field.required ? " *" : ""}
-                </Label>
-
-                {field.type === "select" ? (
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="pickup-location">Pickup location</Label>
                   <Select
-                    value={customSelections[field.id] ?? ""}
-                    onValueChange={(v) =>
-                      handleCustomSelection(field.id, v ?? "")
-                    }
+                    value={pickupLocationId}
+                    onValueChange={(v) => setPickupLocationId(v ?? "")}
                   >
-                    <SelectTrigger id={field.id} className="w-full rounded-xl">
-                      <SelectValue
-                        placeholder={`Choose ${field.label.toLowerCase()}`}
-                      />
+                    <SelectTrigger
+                      id="pickup-location"
+                      className="w-full rounded-xl"
+                    >
+                      <SelectValue placeholder="Choose a pickup location" />
                     </SelectTrigger>
                     <SelectContent>
-                      {field.options.map((option) => (
-                        <SelectItem
-                          key={`${field.id}-${option.value}`}
-                          value={option.value}
-                        >
-                          {option.label}
+                      {pickupLocations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name} - {location.city}, {location.state}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <Input
-                    id={field.id}
-                    value={customSelections[field.id] ?? ""}
-                    onChange={(event) =>
-                      handleCustomSelection(field.id, event.target.value)
-                    }
-                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                    className="rounded-xl"
-                  />
+                </div>
+
+                {selectedPickupLocation && (
+                  <div className="rounded-xl border border-border/60 bg-background px-4 py-3 text-sm">
+                    <p className="font-medium tracking-tight">
+                      {selectedPickupLocation.name}
+                    </p>
+                    <p className="mt-1 text-muted-foreground">
+                      {selectedPickupLocation.addressLine1}
+                      {selectedPickupLocation.addressLine2
+                        ? `, ${selectedPickupLocation.addressLine2}`
+                        : ""}
+                      {`, ${selectedPickupLocation.city}, ${selectedPickupLocation.state}`}
+                    </p>
+                    {(selectedPickupLocation.contactName ||
+                      selectedPickupLocation.contactPhone) && (
+                      <p className="mt-1 text-muted-foreground">
+                        {selectedPickupLocation.contactName ?? "Pickup contact"}
+                        {selectedPickupLocation.contactPhone
+                          ? ` • ${selectedPickupLocation.contactPhone}`
+                          : ""}
+                      </p>
+                    )}
+                    {selectedPickupLocation.pickupInstructions && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {selectedPickupLocation.pickupInstructions}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            ))}
+            )}
           </div>
         )}
 
-        <div className="rounded-xl bg-muted/40 p-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Cash price</span>
-            <span className="font-medium">{formatNaira(effectiveTotal)}</span>
-          </div>
-          {purchaseMode === "contribute" ? (
-            <>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Contribution uplift (
-                  {Math.round(contributionPlan.surchargeRate * 100)}%)
-                </span>
-                <span className="font-medium">
-                  {formatNaira(contributionPlan.surchargeAmount)}
-                </span>
+        {fulfillmentReady && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min={moq}
+                  value={quantity}
+                  onChange={(event) =>
+                    setQuantity(
+                      Math.max(moq, Number(event.target.value) || moq),
+                    )
+                  }
+                  className="rounded-xl"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Minimum order quantity: {moq}
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Plan total</span>
-                <span className="font-medium">
-                  {formatNaira(contributionPlan.adjustedTotal)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Deposit to lock price
-                </span>
-                <span className="font-medium text-primary">
-                  {formatNaira(contributionPlan.depositAmount)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Remaining after deposit
-                </span>
-                <span className="font-medium">
-                  {formatNaira(contributionPlan.remainingBalance)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fulfillment</span>
-                <span className="font-medium">
-                  {deliveryMethod === "PICKUP" ? "Pickup" : "Door delivery"}
-                </span>
-              </div>
-              {logisticsProvider === "SPEEDAF" &&
-                deliveryMethod === "DELIVERY" && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      Speedaf shipping
-                    </span>
-                    <span className="font-medium">
-                      {speedafQuoteLoading ? (
-                        <span className="animate-pulse text-muted-foreground">
-                          Calculating…
-                        </span>
-                      ) : speedafQuote ? (
-                        new Intl.NumberFormat("en-NG", {
-                          style: "currency",
-                          currency: speedafQuote.currency,
-                          minimumFractionDigits: 0,
-                        }).format(speedafQuote.fee)
-                      ) : (
-                        <span className="text-muted-foreground">TBD</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-              {logisticsProvider !== "SPEEDAF" && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {deliveryMethod === "PICKUP"
-                      ? "Pickup fee"
-                      : "Standard delivery"}
-                  </span>
-                  <span className="font-medium">
-                    {(() => {
-                      if (deliveryMethod === "PICKUP")
-                        return (
-                          <span className="text-green-600 dark:text-green-400">
-                            Free
-                          </span>
-                        );
-                      if (!effectiveState)
-                        return (
-                          <span className="text-muted-foreground text-xs">
-                            Select state
-                          </span>
-                        );
-                      if (effectiveDeliveryFee === 0)
-                        return (
-                          <span className="text-green-600 dark:text-green-400">
-                            Free
-                          </span>
-                        );
-                      return formatNaira(effectiveDeliveryFee);
-                    })()}
-                  </span>
-                </div>
-              )}
-              <div className="border-t border-border/60 pt-2 flex justify-between">
-                <span className="text-muted-foreground">
-                  {
-                    CADENCE_OPTIONS.find(
-                      (option) => option.value === contributionCadence,
-                    )?.label
-                  }{" "}
-                  target × {contributionPlan.installmentCount}
-                </span>
-                <span className="font-display text-lg font-semibold">
-                  {formatNaira(contributionPlan.installmentAmount)}/
-                  {contributionPlan.intervalLabel}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                You will pay {formatNaira(contributionPlan.depositAmount)}{" "}
-                deposit now. Price locked for {priceLockDays} days.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fulfillment</span>
-                <span className="font-medium">
-                  {deliveryMethod === "PICKUP" ? "Pickup" : "Door delivery"}
-                </span>
-              </div>
-              {logisticsProvider === "SPEEDAF" &&
-                deliveryMethod === "DELIVERY" && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      Speedaf shipping
-                    </span>
-                    <span className="font-medium">
-                      {speedafQuoteLoading ? (
-                        <span className="animate-pulse text-muted-foreground">
-                          Calculating…
-                        </span>
-                      ) : speedafQuote ? (
-                        new Intl.NumberFormat("en-NG", {
-                          style: "currency",
-                          currency: speedafQuote.currency,
-                          minimumFractionDigits: 0,
-                        }).format(speedafQuote.fee)
-                      ) : (
-                        <span className="text-muted-foreground">TBD</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-              {logisticsProvider !== "SPEEDAF" && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    {deliveryMethod === "PICKUP"
-                      ? "Pickup fee"
-                      : "Standard delivery"}
-                  </span>
-                  <span className="font-medium">
-                    {(() => {
-                      if (deliveryMethod === "PICKUP")
-                        return (
-                          <span className="text-green-600 dark:text-green-400">
-                            Free
-                          </span>
-                        );
-                      if (!effectiveState)
-                        return (
-                          <span className="text-muted-foreground text-xs">
-                            Select state
-                          </span>
-                        );
-                      if (effectiveDeliveryFee === 0)
-                        return (
-                          <span className="text-green-600 dark:text-green-400">
-                            Free
-                          </span>
-                        );
-                      return formatNaira(effectiveDeliveryFee);
-                    })()}
-                  </span>
-                </div>
-              )}
-              <div className="border-t border-border/60 pt-2 flex justify-between">
-                <span className="text-muted-foreground">Pay now</span>
-                <span className="font-display text-lg font-semibold">
-                  {formatNaira(grandTotal)}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Full-payment checkout starts immediately after the order is
-                created.
-              </p>
-            </>
-          )}
-        </div>
 
-        {hasAcceptedTerms ? (
-          <p className="text-xs text-muted-foreground">
-            You have agreed to the{" "}
-            <a
-              href="/terms"
-              className="font-medium text-primary hover:underline"
-            >
-              service agreement
-            </a>
-            .
-          </p>
-        ) : (
-          <label
-            htmlFor="terms-accepted"
-            className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm"
-          >
-            <Checkbox
-              id="terms-accepted"
-              checked={termsAccepted}
-              onCheckedChange={(v) => setTermsAccepted(v === true)}
-              className="mt-0.5"
-            />
-            <span className="text-muted-foreground">
-              I agree to the{" "}
-              <a
-                href="/terms"
-                className="font-medium text-primary hover:underline"
+              {purchaseMode === "contribute" && (
+                <div className="space-y-2">
+                  <Label>Cadence</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {CADENCE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleCadenceChange(option.value)}
+                        className={`rounded-full px-3 py-2 text-sm transition-colors ${
+                          contributionCadence === option.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {purchaseMode === "contribute" && (
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="contribution-duration">Duration</Label>
+                  <p className="font-medium tracking-tight text-sm">
+                    {contributionPlan.durationLabel}
+                  </p>
+                </div>
+
+                <input
+                  id="contribution-duration"
+                  type="range"
+                  title="Contribution duration"
+                  aria-label="Contribution duration"
+                  min={durationLimits.min}
+                  max={durationLimits.max}
+                  step={durationLimits.step}
+                  value={contributionPlan.duration}
+                  onChange={(event) =>
+                    setContributionDuration(
+                      clampContributionDuration(
+                        contributionCadence,
+                        Number(event.target.value),
+                      ),
+                    )
+                  }
+                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted"
+                />
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Min {durationLimits.min} {durationLimits.unit}
+                  </span>
+                  <span>
+                    Max {durationLimits.max} {durationLimits.unit}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {colors.length > 0 && (
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <div className="flex flex-wrap gap-2">
+                  {colors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                        selectedColor === color
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/60 bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {sizes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Size</Label>
+                <div className="flex flex-wrap gap-2">
+                  {sizes.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                        selectedSize === size
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/60 bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {customFields.length > 0 && (
+              <div className="space-y-4">
+                {customFields.map((field) => (
+                  <div key={field.id} className="space-y-2">
+                    <Label htmlFor={field.id}>
+                      {field.label}
+                      {field.required ? " *" : ""}
+                    </Label>
+
+                    {field.type === "select" ? (
+                      <Select
+                        value={customSelections[field.id] ?? ""}
+                        onValueChange={(v) =>
+                          handleCustomSelection(field.id, v ?? "")
+                        }
+                      >
+                        <SelectTrigger
+                          id={field.id}
+                          className="w-full rounded-xl"
+                        >
+                          <SelectValue
+                            placeholder={`Choose ${field.label.toLowerCase()}`}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {field.options.map((option) => (
+                            <SelectItem
+                              key={`${field.id}-${option.value}`}
+                              value={option.value}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id={field.id}
+                        value={customSelections[field.id] ?? ""}
+                        onChange={(event) =>
+                          handleCustomSelection(field.id, event.target.value)
+                        }
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        className="rounded-xl"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="rounded-xl bg-muted/40 p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cash price</span>
+                <span className="font-medium">
+                  {formatNaira(effectiveTotal)}
+                </span>
+              </div>
+              {purchaseMode === "contribute" ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Contribution uplift (
+                      {Math.round(contributionPlan.surchargeRate * 100)}%)
+                    </span>
+                    <span className="font-medium">
+                      {formatNaira(contributionPlan.surchargeAmount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Plan total</span>
+                    <span className="font-medium">
+                      {formatNaira(contributionPlan.adjustedTotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Deposit to lock price
+                    </span>
+                    <span className="font-medium text-primary">
+                      {formatNaira(contributionPlan.depositAmount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Remaining after deposit
+                    </span>
+                    <span className="font-medium">
+                      {formatNaira(contributionPlan.remainingBalance)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fulfillment</span>
+                    <span className="font-medium">
+                      {deliveryMethod === "PICKUP" ? "Pickup" : "Door delivery"}
+                    </span>
+                  </div>
+                  {logisticsProvider === "SPEEDAF" &&
+                    deliveryMethod === "DELIVERY" && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Speedaf shipping
+                        </span>
+                        <span className="font-medium">
+                          {speedafQuoteLoading ? (
+                            <span className="animate-pulse text-muted-foreground">
+                              Calculating…
+                            </span>
+                          ) : speedafQuote ? (
+                            new Intl.NumberFormat("en-NG", {
+                              style: "currency",
+                              currency: speedafQuote.currency,
+                              minimumFractionDigits: 0,
+                            }).format(speedafQuote.fee)
+                          ) : (
+                            <span className="text-muted-foreground">TBD</span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  {logisticsProvider !== "SPEEDAF" && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {deliveryMethod === "PICKUP"
+                          ? "Pickup fee"
+                          : "Standard delivery"}
+                      </span>
+                      <span className="font-medium">
+                        {(() => {
+                          if (deliveryMethod === "PICKUP")
+                            return (
+                              <span className="text-green-600 dark:text-green-400">
+                                Free
+                              </span>
+                            );
+                          if (!effectiveState)
+                            return (
+                              <span className="text-muted-foreground text-xs">
+                                Select state
+                              </span>
+                            );
+                          if (effectiveDeliveryFee === 0)
+                            return (
+                              <span className="text-green-600 dark:text-green-400">
+                                Free
+                              </span>
+                            );
+                          return formatNaira(effectiveDeliveryFee);
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="border-t border-border/60 pt-2 flex justify-between">
+                    <span className="text-muted-foreground">
+                      {
+                        CADENCE_OPTIONS.find(
+                          (option) => option.value === contributionCadence,
+                        )?.label
+                      }{" "}
+                      target × {contributionPlan.installmentCount}
+                    </span>
+                    <span className="font-display text-lg font-semibold">
+                      {formatNaira(contributionPlan.installmentAmount)}/
+                      {contributionPlan.intervalLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    You will pay {formatNaira(contributionPlan.depositAmount)}{" "}
+                    deposit now. Price locked for {priceLockDays} days.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fulfillment</span>
+                    <span className="font-medium">
+                      {deliveryMethod === "PICKUP" ? "Pickup" : "Door delivery"}
+                    </span>
+                  </div>
+                  {logisticsProvider === "SPEEDAF" &&
+                    deliveryMethod === "DELIVERY" && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Speedaf shipping
+                        </span>
+                        <span className="font-medium">
+                          {speedafQuoteLoading ? (
+                            <span className="animate-pulse text-muted-foreground">
+                              Calculating…
+                            </span>
+                          ) : speedafQuote ? (
+                            new Intl.NumberFormat("en-NG", {
+                              style: "currency",
+                              currency: speedafQuote.currency,
+                              minimumFractionDigits: 0,
+                            }).format(speedafQuote.fee)
+                          ) : (
+                            <span className="text-muted-foreground">TBD</span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  {logisticsProvider !== "SPEEDAF" && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {deliveryMethod === "PICKUP"
+                          ? "Pickup fee"
+                          : "Standard delivery"}
+                      </span>
+                      <span className="font-medium">
+                        {(() => {
+                          if (deliveryMethod === "PICKUP")
+                            return (
+                              <span className="text-green-600 dark:text-green-400">
+                                Free
+                              </span>
+                            );
+                          if (!effectiveState)
+                            return (
+                              <span className="text-muted-foreground text-xs">
+                                Select state
+                              </span>
+                            );
+                          if (effectiveDeliveryFee === 0)
+                            return (
+                              <span className="text-green-600 dark:text-green-400">
+                                Free
+                              </span>
+                            );
+                          return formatNaira(effectiveDeliveryFee);
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="border-t border-border/60 pt-2 flex justify-between">
+                    <span className="text-muted-foreground">Pay now</span>
+                    <span className="font-display text-lg font-semibold">
+                      {formatNaira(grandTotal)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Full-payment checkout starts immediately after the order is
+                    created.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {hasAcceptedTerms ? (
+              <p className="text-xs text-muted-foreground">
+                You have agreed to the{" "}
+                <a
+                  href="/terms"
+                  className="font-medium text-primary hover:underline"
+                >
+                  service agreement
+                </a>
+                .
+              </p>
+            ) : (
+              <label
+                htmlFor="terms-accepted"
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm"
               >
-                terms and conditions
-              </a>
-            </span>
-          </label>
-        )}
+                <Checkbox
+                  id="terms-accepted"
+                  checked={termsAccepted}
+                  onCheckedChange={(v) => setTermsAccepted(v === true)}
+                  className="mt-0.5"
+                />
+                <span className="text-muted-foreground">
+                  I agree to the{" "}
+                  <a
+                    href="/terms"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    terms and conditions
+                  </a>
+                </span>
+              </label>
+            )}
 
-        {session ? (
-          <Button
-            type="submit"
-            disabled={isPending}
-            className="h-12 w-full rounded-full font-medium tracking-wide shadow-lg shadow-primary/20"
-          >
-            {isPending
-              ? purchaseMode === "buy-now"
-                ? "Starting checkout..."
-                : "Creating order..."
-              : purchaseMode === "buy-now"
-                ? "Buy Immediately"
-                : "Contribute to Buy"}
-          </Button>
-        ) : (
-          <a
-            href="/login"
-            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-medium tracking-wide text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/20"
-          >
-            Log in to continue
-          </a>
+            {session ? (
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="h-12 w-full rounded-full font-medium tracking-wide shadow-lg shadow-primary/20"
+              >
+                {isPending
+                  ? purchaseMode === "buy-now"
+                    ? "Starting checkout..."
+                    : "Creating order..."
+                  : purchaseMode === "buy-now"
+                    ? "Buy Immediately"
+                    : "Contribute to Buy"}
+              </Button>
+            ) : (
+              <a
+                href="/login"
+                className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-medium tracking-wide text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/20"
+              >
+                Log in to continue
+              </a>
+            )}
+          </>
         )}
       </form>
     </div>
