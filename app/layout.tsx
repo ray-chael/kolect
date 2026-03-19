@@ -21,9 +21,27 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Ade's Kolekt — Pre-Order & Installment Platform",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://kolekt.com.ng",
+  ),
+  title: {
+    default: "Ade's Kolekt — Pre-Order & Installment Platform",
+    template: "%s | Ade's Kolekt",
+  },
   description:
     "Curated items at unbeatable prices. Pay a small deposit, contribute at your pace, and we deliver to your door.",
+  openGraph: {
+    type: "website",
+    siteName: "Ade's Kolekt",
+    locale: "en_NG",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

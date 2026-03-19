@@ -1,20 +1,28 @@
 import { productService } from "@/lib/services/product.service";
 import { prisma } from "@/lib/db";
 import { ProductsClient } from "@/components/shared/products-client";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Our Collection — Ade's Kolekt",
+  description:
+    "Browse curated items at unbeatable prices. Pre-order or pay in installments with Ade's Kolekt.",
+};
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; sort?: string }>;
 }) {
-  const { q, category } = await searchParams;
+  const { q, category, sort } = await searchParams;
 
   const [{ items, total }, categories] = await Promise.all([
     productService.search({
       q: q || undefined,
       categoryId: category || undefined,
+      sort: sort || undefined,
       skip: 0,
       take: 12,
     }),
@@ -42,6 +50,7 @@ export default async function ProductsPage({
         categories={categories}
         initialQ={q ?? ""}
         initialCategoryId={category ?? ""}
+        initialSort={sort ?? ""}
       />
     </div>
   );

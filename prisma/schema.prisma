@@ -162,12 +162,28 @@ model Product {
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
+  viewCount     Int           @default(0)
+
   orders        Order[]
   flashSales    FlashSale[]
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
+  views         ProductView[]
 
   @@map("products")
+}
+
+model ProductView {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("product_views")
 }
 
 enum ProductStatus {

@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   Search,
   SlidersHorizontal,
+  ArrowUpDown,
   X,
   Loader2,
   ShoppingCart,
@@ -42,6 +43,7 @@ interface ProductsClientProps {
   categories: Category[];
   initialQ?: string;
   initialCategoryId?: string;
+  initialSort?: string;
 }
 
 function ProductSkeleton() {
@@ -61,6 +63,7 @@ export function ProductsClient({
   categories,
   initialQ = "",
   initialCategoryId = "",
+  initialSort = "",
 }: ProductsClientProps) {
   const [items, setItems] = useState<ProductItem[]>(initialItems);
   const [currentTotal, setCurrentTotal] = useState(total);
@@ -68,9 +71,14 @@ export function ProductsClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState(initialQ);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [sort, setSort] = useState(initialSort);
 
   const skipRef = useRef(initialItems.length);
-  const filterRef = useRef({ q: initialQ, categoryId: initialCategoryId });
+  const filterRef = useRef({
+    q: initialQ,
+    categoryId: initialCategoryId,
+    sort: initialSort,
+  });
   const sentinelRef = useRef<HTMLDivElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -90,6 +98,7 @@ export function ProductsClient({
       const { items: more, total: newTotal } = await fetchProductsAction({
         q: filterRef.current.q || undefined,
         categoryId: filterRef.current.categoryId || undefined,
+        sort: filterRef.current.sort || undefined,
         skip: skipRef.current,
         take: PAGE_SIZE,
       });
@@ -119,12 +128,13 @@ export function ProductsClient({
     return () => observer.disconnect();
   }, []);
 
-  function applyFilter(newQ: string, newCatId: string) {
-    filterRef.current = { q: newQ, categoryId: newCatId };
+  function applyFilter(newQ: string, newCatId: string, newSort: string = sort) {
+    filterRef.current = { q: newQ, categoryId: newCatId, sort: newSort };
     startFilterTransition(async () => {
       const { items: fresh, total: freshTotal } = await fetchProductsAction({
         q: newQ || undefined,
         categoryId: newCatId || undefined,
+        sort: newSort || undefined,
         skip: 0,
         take: PAGE_SIZE,
       });
@@ -145,13 +155,19 @@ export function ProductsClient({
     applyFilter(q, value);
   }
 
+  function handleSortChange(value: string) {
+    setSort(value);
+    applyFilter(q, categoryId, value);
+  }
+
   function clearFilters() {
     setQ("");
     setCategoryId("");
-    applyFilter("", "");
+    setSort("");
+    applyFilter("", "", "");
   }
 
-  const hasActiveFilters = !!(q.trim() || categoryId);
+  const hasActiveFilters = !!(q.trim() || categoryId || sort);
   const { addItem } = useCart();
   const { isWishlisted, toggle: toggleWishlist } = useWishlist();
 
@@ -211,8 +227,24 @@ export function ProductsClient({
           </button>
         )}
 
+        {/* Sort */}
+        <div className="relative ml-auto">
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <select
+            aria-label="Sort products"
+            value={sort}
+            onChange={(e) => handleSortChange(e.target.value)}
+            className="h-10 appearance-none rounded-xl border border-input bg-background pl-9 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Newest</option>
+            <option value="most-viewed">Most Viewed</option>
+            <option value="price-low">Price: Low → High</option>
+            <option value="price-high">Price: High → Low</option>
+          </select>
+        </div>
+
         {/* Count */}
-        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+        <span className="text-xs tabular-nums text-muted-foreground">
           {filterPending ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin inline-block" />
           ) : (

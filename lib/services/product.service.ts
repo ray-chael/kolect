@@ -143,6 +143,7 @@ export const productService = {
   async search(options: {
     q?: string;
     categoryId?: string;
+    sort?: string;
     skip?: number;
     take?: number;
   }) {
@@ -155,6 +156,16 @@ export const productService = {
         ? { name: { contains: options.q, mode: "insensitive" } }
         : {}),
     };
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput =
+      options.sort === "most-viewed"
+        ? { viewCount: "desc" }
+        : options.sort === "price-low"
+          ? { markupPrice: "asc" }
+          : options.sort === "price-high"
+            ? { markupPrice: "desc" }
+            : { createdAt: "desc" };
+
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -170,13 +181,34 @@ export const productService = {
             take: 1,
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip,
         take,
       }),
       prisma.product.count({ where }),
     ]);
     return { items, total };
+  },
+
+  /** Top N most-viewed products for the homepage trending section */
+  async getTrending(take = 6) {
+    return prisma.product.findMany({
+      where: { status: "AVAILABLE", viewCount: { gt: 0 } },
+      include: {
+        category: true,
+        flashSales: {
+          where: {
+            isActive: true,
+            startsAt: { lte: new Date() },
+            endsAt: { gte: new Date() },
+          },
+          orderBy: { salePrice: "asc" },
+          take: 1,
+        },
+      },
+      orderBy: { viewCount: "desc" },
+      take,
+    });
   },
 
   /** All products for admin — no status filter by default, supports search */

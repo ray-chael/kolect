@@ -6,14 +6,50 @@ import Image from "next/image";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
 import { FlashSaleCountdown } from "@/components/shared/flash-sale-countdown";
 import { WishlistToggleButton } from "@/components/shared/wishlist-toggle-button";
+import { ProductViewTracker } from "@/components/shared/product-view-tracker";
+import { RecentlyViewed } from "@/components/shared/recently-viewed";
 import { coerceProductCustomFields } from "@/lib/types";
 import { getSession } from "@/lib/session";
 import { getUserAddresses } from "@/actions/addresses";
 import { getSettingValue } from "@/actions/settings";
 import { parseDeliveryRates } from "@/lib/utils/delivery-rates";
+import type { Metadata } from "next";
 import type { SavedAddressSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await productService.getBySlug(slug);
+  if (!product) return {};
+
+  const title = `${product.name} — Ade's Kolekt`;
+  const description = product.description
+    ? product.description.replace(/<[^>]+>/g, "").slice(0, 160)
+    : `Shop ${product.name} on Ade's Kolekt. Pay a small deposit and contribute at your own pace.`;
+  const image = product.images[0] ?? undefined;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(image ? { images: [{ url: image, width: 1200, height: 630 }] } : {}),
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
+  };
+}
 
 export default async function ProductDetailPage({
   params,
@@ -50,6 +86,38 @@ export default async function ProductDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
+      <ProductViewTracker
+        productId={product.id}
+        slug={product.slug}
+        name={product.name}
+        image={product.images[0] ?? ""}
+        price={activeSale?.salePrice ?? product.markupPrice}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.name,
+            description: product.description
+              ? product.description.replace(/<[^>]+>/g, "").slice(0, 500)
+              : undefined,
+            image: product.images[0] ?? undefined,
+            offers: {
+              "@type": "Offer",
+              price: (
+                (activeSale?.salePrice ?? product.markupPrice) / 100
+              ).toFixed(2),
+              priceCurrency: "NGN",
+              availability:
+                product.status === "AVAILABLE"
+                  ? "https://schema.org/InStock"
+                  : "https://schema.org/OutOfStock",
+            },
+          }),
+        }}
+      />
       <a
         href="/products"
         className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -228,6 +296,8 @@ export default async function ProductDetailPage({
           )}
         </div>
       </div>
+
+      <RecentlyViewed excludeProductId={product.id} />
     </div>
   );
 }

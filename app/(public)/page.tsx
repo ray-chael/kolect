@@ -4,8 +4,15 @@ import { FlashSaleSection } from "@/components/shared/flash-sale-section";
 import { productService } from "@/lib/services/product.service";
 import { formatNaira } from "@/lib/types";
 import { ProductVideoThumbnail } from "@/components/shared/product-video-thumbnail";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Ade's Kolekt — Pre-Order & Installment Platform",
+  description:
+    "Shop curated items at unbeatable prices. Pay a small deposit, contribute at your pace, and we deliver to your door. Pre-order and installment shopping in Nigeria.",
+};
 
 export default async function HomePage() {
   const products = await productService.getAll();
@@ -13,6 +20,7 @@ export default async function HomePage() {
   const flashSaleProducts = products.filter(
     (p) => (p.flashSales?.length ?? 0) > 0,
   );
+  const trending = await productService.getTrending(6);
 
   return (
     <>
@@ -373,6 +381,100 @@ export default async function HomePage() {
 
       {/* ── Flash Sales ───────────────────────────────────────── */}
       <FlashSaleSection products={flashSaleProducts} />
+
+      {/* ── Trending Now ──────────────────────────────────────── */}
+      {trending.length > 0 && (
+        <section className="border-t border-border/40">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 sm:py-20">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="mb-2 text-xs uppercase tracking-[0.25em] text-warm">
+                  Popular
+                </p>
+                <h2 className="font-display text-3xl tracking-tight md:text-4xl">
+                  Trending Now
+                </h2>
+              </div>
+              <a
+                href="/products?sort=most-viewed"
+                className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
+              >
+                View all &rarr;
+              </a>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {trending.map((product) => (
+                <a
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="group overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-muted/60">
+                    {product.images[0] ? (
+                      <Image
+                        src={product.images[0]}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    ) : product.videos?.[0] ? (
+                      <ProductVideoThumbnail src={product.videos[0]} />
+                    ) : null}
+                    {product.flashSales[0] && (
+                      <span className="absolute left-3 top-3 rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground shadow-md">
+                        {product.flashSales[0].label}
+                      </span>
+                    )}
+                    <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-background/80 backdrop-blur-sm px-2 py-1 text-xs font-medium text-muted-foreground">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      {product.viewCount}
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-semibold tracking-tight transition-colors group-hover:text-primary">
+                      {product.name}
+                    </h3>
+                    {product.flashSales[0] ? (
+                      <div className="mt-1 flex items-baseline gap-2">
+                        <p className="text-lg font-bold text-primary">
+                          {formatNaira(product.flashSales[0].salePrice)}
+                        </p>
+                        <p className="text-sm text-muted-foreground line-through">
+                          {formatNaira(product.markupPrice)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-lg font-bold text-foreground">
+                        {formatNaira(product.markupPrice)}
+                      </p>
+                    )}
+                    {product.category && (
+                      <span className="mt-2 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        {product.category.name}
+                      </span>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Featured Products ─────────────────────────────────── */}
       {featured.length > 0 && (
