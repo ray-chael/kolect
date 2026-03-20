@@ -1,20 +1,20 @@
 "use client";
 
 import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useCallback,
-    useRef,
-    type ReactNode,
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
 } from "react";
 import { useSession } from "@/lib/auth-client";
 import {
-    getWishlistItems,
-    toggleWishlist as serverToggle,
-    syncWishlistFromGuest,
-    type WishlistItemData,
+  getWishlistItems,
+  toggleWishlist as serverToggle,
+  syncWishlistFromGuest,
+  type WishlistItemData,
 } from "@/actions/wishlist";
 
 const GUEST_WISHLIST_KEY = "ades-wishlist";
@@ -82,7 +82,14 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         setItems(
           guestIds.map((id) => ({
             productId: id,
-            product: { id, name: "", slug: "", images: [], markupPrice: 0 },
+            product: {
+              id,
+              name: "",
+              slug: "",
+              images: [],
+              videos: [],
+              markupPrice: 0,
+            },
           })),
         );
       }
@@ -121,7 +128,14 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         setItems(
           guestIds.map((id) => ({
             productId: id,
-            product: { id, name: "", slug: "", images: [], markupPrice: 0 },
+            product: {
+              id,
+              name: "",
+              slug: "",
+              images: [],
+              videos: [],
+              markupPrice: 0,
+            },
           })),
         );
       }
@@ -130,7 +144,9 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <WishlistContext.Provider value={{ items, itemCount, loading, isWishlisted, toggle }}>
+    <WishlistContext.Provider
+      value={{ items, itemCount, loading, isWishlisted, toggle }}
+    >
       {children}
     </WishlistContext.Provider>
   );

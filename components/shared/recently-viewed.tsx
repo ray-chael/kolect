@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import Image from "next/image";
 import { formatNaira } from "@/lib/types";
+import { ProductVideoThumbnail } from "./product-video-thumbnail";
 
 const STORAGE_KEY = "recently-viewed";
 const MAX_ITEMS = 8;
@@ -12,6 +13,7 @@ type RecentProduct = {
   slug: string;
   name: string;
   image: string;
+  video?: string;
   price: number;
 };
 
@@ -84,6 +86,8 @@ export function RecentlyViewed({
                     className="object-cover"
                     sizes="144px"
                   />
+                ) : p.video ? (
+                  <ProductVideoThumbnail src={p.video} />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                     No image

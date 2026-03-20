@@ -13,12 +13,14 @@ export function ProductViewTracker({
   slug,
   name,
   image,
+  video,
   price,
 }: {
   productId: string;
   slug: string;
   name: string;
   image: string;
+  video?: string;
   price: number;
 }) {
   const tracked = useRef(false);
@@ -27,8 +29,8 @@ export function ProductViewTracker({
     if (tracked.current) return;
     tracked.current = true;
     recordProductView(productId);
-    recordRecentlyViewed({ id: productId, slug, name, image, price });
-  }, [productId, slug, name, image, price]);
+    recordRecentlyViewed({ id: productId, slug, name, image, video, price });
+  }, [productId, slug, name, image, video, price]);
 
   return null;
 }

@@ -285,30 +285,32 @@ async function processHelpMePayContribution(
       data: { amountRaised: { increment: amountKobo } },
     });
 
-    // Apply payment to the order (the actual order balance)
-    const order = await tx.order.findUniqueOrThrow({
-      where: { id: helpMePay.orderId },
-    });
-
-    if (
-      order.status !== "PAID" &&
-      order.status !== "CANCELLED" &&
-      order.status !== "EXPIRED"
-    ) {
-      const newAmountPaid = order.amountPaid + amountKobo;
-      const isFullyPaid = newAmountPaid >= order.totalAmount;
-      const depositThreshold = Math.round(order.totalAmount * 0.2);
-      const isNowDepositPaid = newAmountPaid >= depositThreshold;
-
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          amountPaid: newAmountPaid,
-          isDepositPaid: isNowDepositPaid || order.isDepositPaid,
-          status: isFullyPaid ? "PAID" : "PARTIAL",
-          completedAt: isFullyPaid ? new Date() : null,
-        },
+    // Apply payment to the linked order (only if this campaign came from an order)
+    if (helpMePay.orderId) {
+      const order = await tx.order.findUniqueOrThrow({
+        where: { id: helpMePay.orderId },
       });
+
+      if (
+        order.status !== "PAID" &&
+        order.status !== "CANCELLED" &&
+        order.status !== "EXPIRED"
+      ) {
+        const newAmountPaid = order.amountPaid + amountKobo;
+        const isFullyPaid = newAmountPaid >= order.totalAmount;
+        const depositThreshold = Math.round(order.totalAmount * 0.2);
+        const isNowDepositPaid = newAmountPaid >= depositThreshold;
+
+        await tx.order.update({
+          where: { id: order.id },
+          data: {
+            amountPaid: newAmountPaid,
+            isDepositPaid: isNowDepositPaid || order.isDepositPaid,
+            status: isFullyPaid ? "PAID" : "PARTIAL",
+            completedAt: isFullyPaid ? new Date() : null,
+          },
+        });
+      }
     }
 
     // Deactivate campaign if target reached

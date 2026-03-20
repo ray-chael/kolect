@@ -207,7 +207,15 @@ export async function getUserGroupBuys(): Promise<ActionResult> {
     const groupBuys = await prisma.groupBuy.findMany({
       where: { creatorId: session.user.id },
       include: {
-        product: { select: { name: true, slug: true, images: true, markupPrice: true } },
+        product: {
+          select: {
+            name: true,
+            slug: true,
+            images: true,
+            videos: true,
+            markupPrice: true,
+          },
+        },
         _count: { select: { contributions: { where: { status: "SUCCESS" } } } },
       },
       orderBy: { createdAt: "desc" },

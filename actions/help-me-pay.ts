@@ -78,12 +78,104 @@ export async function createHelpMePay(
   }
 }
 
+// ─── Create a Help Me Pay Campaign from a Product ────────────────
+
+export async function createHelpMePayFromProduct(
+  formData: FormData,
+): Promise<ActionResult<{ slug: string }>> {
+  try {
+    const session = await requireSession();
+    const productId = formData.get("productId") as string;
+    const quantity = Math.max(1, Number(formData.get("quantity") || 1));
+    const selectedColor = (formData.get("selectedColor") as string)?.trim() || null;
+    const selectedSize = (formData.get("selectedSize") as string)?.trim() || null;
+    const message = (formData.get("message") as string)?.trim() || null;
+    const deadlineDays = Number(formData.get("deadlineDays") || 30);
+
+    if (!productId) return { success: false, message: "Product is required" };
+
+    const validDeadline = DEADLINE_OPTIONS.find((d) => d.days === deadlineDays);
+    if (!validDeadline) return { success: false, message: "Invalid deadline option" };
+
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product || product.status !== "AVAILABLE") {
+      return { success: false, message: "Product not found or unavailable" };
+    }
+
+    // Prevent duplicate active campaigns for the same product
+    const existing = await prisma.helpMePay.findFirst({
+      where: {
+        creatorId: session.user.id,
+        productId,
+        isActive: true,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (existing) {
+      return {
+        success: false,
+        message: "You already have an active Help Me Pay campaign for this product",
+      };
+    }
+
+    const baseAmount = product.markupPrice * quantity;
+    const { interestAmount } = calculateInterest(baseAmount, deadlineDays);
+    const slug = `help-${uuidv4().slice(0, 12)}`;
+
+    const helpMePay = await prisma.helpMePay.create({
+      data: {
+        productId,
+        quantity,
+        selectedColor,
+        selectedSize,
+        creatorId: session.user.id,
+        slug,
+        message,
+        targetAmount: baseAmount + interestAmount,
+        interestAmount,
+        expiresAt: deadlineFromDays(deadlineDays),
+      },
+    });
+
+    return {
+      success: true,
+      message: "Help Me Pay campaign created! Share the link with friends.",
+      data: { slug: helpMePay.slug },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to create campaign",
+    };
+  }
+}
+
+// ─── Check if user has an active campaign for a product ──────────
+
+export async function getUserHelpMePayForProduct(productId: string) {
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) return null;
+    return await prisma.helpMePay.findFirst({
+      where: {
+        creatorId: session.user.id,
+        productId,
+        isActive: true,
+        expiresAt: { gt: new Date() },
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 // ─── Get Help Me Pay Details ──────────────────────────────────────
 
 export async function getHelpMePay(slug: string) {
   return prisma.helpMePay.findUnique({
     where: { slug },
     include: {
+      product: true,
       order: {
         include: { product: true },
       },
@@ -204,8 +296,15 @@ export async function getUserHelpMePays(): Promise<ActionResult> {
     const campaigns = await prisma.helpMePay.findMany({
       where: { creatorId: session.user.id },
       include: {
+        product: {
+          select: { name: true, slug: true, images: true, videos: true },
+        },
         order: {
-          include: { product: { select: { name: true, slug: true, images: true } } },
+          include: {
+            product: {
+              select: { name: true, slug: true, images: true, videos: true },
+            },
+          },
         },
         _count: { select: { contributions: { where: { status: "SUCCESS" } } } },
       },

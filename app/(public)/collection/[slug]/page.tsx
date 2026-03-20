@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
 import { CreateGroupBuyForm } from "@/components/forms/create-group-buy-form";
+import { CreateHelpMePayFromProductForm } from "@/components/forms/create-help-me-pay-from-product-form";
+import { getUserHelpMePayForProduct } from "@/actions/help-me-pay";
 import { FlashSaleCountdown } from "@/components/shared/flash-sale-countdown";
 import { WishlistToggleButton } from "@/components/shared/wishlist-toggle-button";
 import { ProductViewTracker } from "@/components/shared/product-view-tracker";
@@ -16,6 +18,7 @@ import { getSettingValue } from "@/actions/settings";
 import { parseDeliveryRates } from "@/lib/utils/delivery-rates";
 import type { Metadata } from "next";
 import type { SavedAddressSummary } from "@/lib/types";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +76,9 @@ export default async function ProductDetailPage({
     ? ((await getUserAddresses()).data ?? [])
     : [];
   const speedafEnabled = (await getSettingValue("enableSpeedaf")) === "true";
+  const existingCampaign = session
+    ? await getUserHelpMePayForProduct(product.id)
+    : null;
   const [defaultFeeNaira, lagosLgaRatesJson, stateDeliveryRatesJson] =
     await Promise.all([
       getSettingValue("defaultDeliveryFee").then((v) => Number(v) || 0),
@@ -92,6 +98,7 @@ export default async function ProductDetailPage({
         slug={product.slug}
         name={product.name}
         image={product.images[0] ?? ""}
+        video={product.videos[0]}
         price={activeSale?.salePrice ?? product.markupPrice}
       />
       <script
@@ -119,12 +126,12 @@ export default async function ProductDetailPage({
           }),
         }}
       />
-      <a
+      <Link
         href="/collection"
         className="text-sm text-muted-foreground hover:text-primary transition-colors"
       >
         &larr; Back to Collection
-      </a>
+      </Link>
 
       <div className="mt-6 grid gap-10 md:grid-cols-2">
         {/* Product images */}
@@ -287,6 +294,33 @@ export default async function ProductDetailPage({
             colors={product.colors}
             sizes={product.sizes}
           />
+
+          {existingCampaign ? (
+            <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-2">
+              <h3 className="font-semibold tracking-tight text-sm">Help Me Pay</h3>
+              <p className="text-xs text-muted-foreground">
+                {existingCampaign.isActive
+                  ? "Your campaign is active. Share the link below:"
+                  : "Campaign is no longer active."}
+              </p>
+              {existingCampaign.isActive && (
+                <a
+                  href={`/help-me-pay/${existingCampaign.slug}`}
+                  className="text-sm font-medium text-primary hover:underline break-all"
+                >
+                  /help-me-pay/{existingCampaign.slug}
+                </a>
+              )}
+            </div>
+          ) : (
+            <CreateHelpMePayFromProductForm
+              productId={product.id}
+              productName={product.name}
+              productPrice={activeSale?.salePrice ?? product.markupPrice}
+              colors={product.colors}
+              sizes={product.sizes}
+            />
+          )}
 
           {product.expectedProcurementAt && (
             <p className="text-sm text-muted-foreground">

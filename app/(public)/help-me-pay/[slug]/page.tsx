@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { HelpMePayContributeForm } from "./contribute-form";
+import { ProductVideoThumbnail } from "@/components/shared/product-video-thumbnail";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +18,13 @@ export async function generateMetadata({
   const campaign = await getHelpMePay(slug);
   if (!campaign) return {};
 
-  const title = `Help ${campaign.creator.name ?? "someone"} pay for ${campaign.order.product.name} — Ade's Kolekt`;
+  const product = campaign.order?.product ?? campaign.product;
+  if (!product) return {};
+
+  const title = `Help ${campaign.creator.name ?? "someone"} pay for ${product.name} — Ade's Kolekt`;
   const description =
     campaign.message ||
-    `Help fund ${campaign.order.product.name}. ${formatNaira(campaign.targetAmount - campaign.amountRaised)} remaining.`;
+    `Help fund ${product.name}. ${formatNaira(campaign.targetAmount - campaign.amountRaised)} remaining.`;
 
   return {
     title,
@@ -27,8 +32,16 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      ...(campaign.order.product.images[0]
-        ? { images: [{ url: campaign.order.product.images[0], width: 1200, height: 630 }] }
+      ...(product.images[0]
+        ? {
+            images: [
+              {
+                url: product.images[0],
+                width: 1200,
+                height: 630,
+              },
+            ],
+          }
         : {}),
     },
   };
@@ -46,6 +59,9 @@ export default async function HelpMePayPage({
   const campaign = await getHelpMePay(slug);
 
   if (!campaign) notFound();
+
+  const product = campaign.order?.product ?? campaign.product;
+  if (!product) notFound();
 
   const isExpired = new Date() > campaign.expiresAt;
   const isActive = campaign.isActive && !isExpired;
@@ -65,12 +81,12 @@ export default async function HelpMePayPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
-      <a
+      <Link
         href="/collection"
         className="text-sm text-muted-foreground hover:text-primary transition-colors"
       >
         &larr; Back to Collection
-      </a>
+      </Link>
 
       {paymentSuccess && (
         <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-600 dark:text-green-400">
@@ -82,15 +98,17 @@ export default async function HelpMePayPage({
         {/* Product image */}
         <div className="space-y-3">
           <div className="relative aspect-square rounded-2xl bg-muted/60 overflow-hidden">
-            {campaign.order.product.images[0] ? (
+            {product.images[0] ? (
               <Image
-                src={campaign.order.product.images[0]}
-                alt={campaign.order.product.name}
+                src={product.images[0]}
+                alt={product.name}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 280px"
                 priority
               />
+            ) : product.videos[0] ? (
+              <ProductVideoThumbnail src={product.videos[0]} />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No image
@@ -99,7 +117,7 @@ export default async function HelpMePayPage({
           </div>
           <div>
             <a
-              href={`/collection/${campaign.order.product.slug}`}
+              href={`/collection/${product.slug}`}
               className="text-sm text-primary hover:underline"
             >
               View product &rarr;
@@ -121,7 +139,7 @@ export default async function HelpMePayPage({
             </span>
             <h1 className="font-display text-2xl sm:text-3xl tracking-tight">
               Help {campaign.creator.name ?? "someone"} pay for{" "}
-              {campaign.order.product.name}
+              {product.name}
             </h1>
             {campaign.message && (
               <p className="mt-2 text-sm text-muted-foreground">

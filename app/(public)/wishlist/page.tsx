@@ -6,6 +6,7 @@ import { formatNaira } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingCart, Loader2 } from "lucide-react";
+import { ProductVideoThumbnail } from "@/components/shared/product-video-thumbnail";
 import { SignInLink } from "@/components/shared/sign-in-link";
 
 export default function WishlistPage() {
@@ -89,6 +90,8 @@ export default function WishlistPage() {
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
+                ) : item.product.videos[0] ? (
+                  <ProductVideoThumbnail src={item.product.videos[0]} />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                     No image

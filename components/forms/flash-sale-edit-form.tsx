@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface FlashSaleEditData {
   id: string;
@@ -18,7 +19,11 @@ interface FlashSaleEditData {
 }
 
 function formatNairaLocal(kobo: number) {
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(kobo / 100);
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 0,
+  }).format(kobo / 100);
 }
 
 function toDatetimeLocal(d: Date | string) {
@@ -97,7 +102,8 @@ export function FlashSaleEditForm({ sale }: { sale: FlashSaleEditData }) {
           )}
           {discountPercent !== null && discountPercent <= 0 && (
             <p className="text-xs text-destructive">
-              Sale price must be less than {formatNairaLocal(sale.product.markupPrice)}
+              Sale price must be less than{" "}
+              {formatNairaLocal(sale.product.markupPrice)}
             </p>
           )}
         </div>
@@ -129,7 +135,7 @@ export function FlashSaleEditForm({ sale }: { sale: FlashSaleEditData }) {
 
         <div className="flex items-center gap-3">
           <button
-            title='Set Is Active'
+            title="Set Is Active"
             type="button"
             role="switch"
             aria-checked={isActive}
@@ -144,7 +150,10 @@ export function FlashSaleEditForm({ sale }: { sale: FlashSaleEditData }) {
               }`}
             />
           </button>
-          <Label className="cursor-pointer" onClick={() => setIsActive((v) => !v)}>
+          <Label
+            className="cursor-pointer"
+            onClick={() => setIsActive((v) => !v)}
+          >
             {isActive ? "Active" : "Paused"}
           </Label>
         </div>
@@ -158,12 +167,12 @@ export function FlashSaleEditForm({ sale }: { sale: FlashSaleEditData }) {
         >
           {isPending ? "Saving…" : "Save Changes"}
         </Button>
-        <a
+        <Link
           href="/admin/flash-sales"
           className="inline-flex h-11 items-center rounded-full border border-border/60 px-8 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           Cancel
-        </a>
+        </Link>
       </div>
     </form>
   );

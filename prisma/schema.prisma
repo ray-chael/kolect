@@ -175,6 +175,7 @@ model Product {
   wishlistItems WishlistItem[]
   views         ProductView[]
   groupBuys     GroupBuy[]
+  helpMePays    HelpMePay[]
 
   @@map("products")
 }
@@ -475,14 +476,20 @@ enum GroupBuyStatus {
 
 model HelpMePay {
   id              String          @id @default(cuid())
-  orderId         String          @unique
-  order           Order           @relation("HelpMePayOrder", fields: [orderId], references: [id])
+  // One of orderId or productId must be set
+  orderId         String?         @unique  // set when created from an existing order
+  order           Order?          @relation("HelpMePayOrder", fields: [orderId], references: [id])
+  productId       String?         // set when created directly from a product page
+  product         Product?        @relation(fields: [productId], references: [id])
+  quantity        Int             @default(1)
+  selectedColor   String?
+  selectedSize    String?
   creatorId       String
   creator         User            @relation("HelpMePayCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   slug            String          @unique @default(cuid())
   message         String?         // "Help me buy this please!"
-  targetAmount    Int             // Remaining balance the user needs help with in kobo
-  interestAmount  Int             @default(0) // Extra amount due to deadline interest
+  targetAmount    Int             // Amount needed in kobo
+  interestAmount  Int             @default(0)
   amountRaised    Int             @default(0)
   isActive        Boolean         @default(true)
   expiresAt       DateTime
@@ -492,6 +499,7 @@ model HelpMePay {
   contributions HelpMePayContribution[]
 
   @@index([creatorId])
+  @@index([productId])
   @@map("help_me_pay")
 }
 

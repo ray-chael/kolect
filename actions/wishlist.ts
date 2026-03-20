@@ -11,6 +11,7 @@ export interface WishlistItemData {
     name: string;
     slug: string;
     images: string[];
+    videos: string[];
     markupPrice: number;
   };
 }
@@ -24,7 +25,7 @@ export async function getWishlistItems(): Promise<ActionResult<WishlistItemData[
     orderBy: { createdAt: "desc" },
     include: {
       product: {
-        select: { id: true, name: true, slug: true, images: true, markupPrice: true },
+        select: { id: true, name: true, slug: true, images: true, videos: true, markupPrice: true },
       },
     },
   });

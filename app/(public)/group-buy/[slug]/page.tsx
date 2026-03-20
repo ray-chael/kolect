@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { GroupBuyContributeForm } from "./contribute-form";
+import { ProductVideoThumbnail } from "@/components/shared/product-video-thumbnail";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,11 @@ export async function generateMetadata({
       title,
       description,
       ...(groupBuy.product.images[0]
-        ? { images: [{ url: groupBuy.product.images[0], width: 1200, height: 630 }] }
+        ? {
+            images: [
+              { url: groupBuy.product.images[0], width: 1200, height: 630 },
+            ],
+          }
         : {}),
     },
   };
@@ -63,12 +69,12 @@ export default async function GroupBuyPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
-      <a
+      <Link
         href="/collection"
         className="text-sm text-muted-foreground hover:text-primary transition-colors"
       >
         &larr; Back to Collection
-      </a>
+      </Link>
 
       {paymentSuccess && (
         <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-600 dark:text-green-400">
@@ -89,6 +95,8 @@ export default async function GroupBuyPage({
                 sizes="(max-width: 768px) 100vw, 280px"
                 priority
               />
+            ) : groupBuy.product.videos[0] ? (
+              <ProductVideoThumbnail src={groupBuy.product.videos[0]} />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No image
@@ -123,7 +131,9 @@ export default async function GroupBuyPage({
                 {groupBuy.status}
               </span>
               <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                {groupBuy.splitType === "EQUAL" ? "Equal split" : "Flexible split"}
+                {groupBuy.splitType === "EQUAL"
+                  ? "Equal split"
+                  : "Flexible split"}
               </span>
             </div>
             <h1 className="font-display text-2xl sm:text-3xl tracking-tight">
