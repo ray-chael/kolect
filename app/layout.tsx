@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s | Ade's Kolekt",
   },
   description:
-    "Curated items at unbeatable prices. Pay a small deposit, contribute at your pace, and we deliver to your door.",
+    "Curated items at unbeatable prices. Pay small small at your pace, and we deliver to your door.",
   openGraph: {
     type: "website",
     siteName: "Ade's Kolekt",

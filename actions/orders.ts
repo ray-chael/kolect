@@ -9,8 +9,8 @@ import { MIN_INSTALLMENT_KOBO } from "@/lib/consts";
 import { prisma } from "@/lib/db";
 import { getSettingValue } from "@/actions/settings";
 import {
-  computeDeliveryFeeKobo,
-  parseDeliveryRates,
+    computeDeliveryFeeKobo,
+    parseDeliveryRates,
 } from "@/lib/utils/delivery-rates";
 
 function parseSelectionMap(
@@ -26,7 +26,7 @@ function parseSelectionMap(
 }
 
 /**
- * Create a new "Contribute to Buy" order
+ * Create a new "Pay Small Small" order
  */
 export async function createOrder(formData: FormData): Promise<ActionResult> {
   try {

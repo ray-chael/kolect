@@ -27,6 +27,20 @@ export const PAYSTACK_ENDPOINTS = {
   DEDICATED_ACCOUNT: `${PAYSTACK_BASE_URL}/dedicated_account`,
 } as const;
 
+// ─── Group Buy / Help Me Pay ──────────────────────────────────────
+
+/** Minimum helper contribution in kobo (₦1,000) */
+export const MIN_HELPER_CONTRIBUTION_KOBO = 100_000;
+
+/** Deadline options for group buy and help me pay campaigns */
+export const DEADLINE_OPTIONS = [
+  { days: 7, label: "1 week", interestPercent: 0 },
+  { days: 14, label: "2 weeks", interestPercent: 2 },
+  { days: 30, label: "1 month", interestPercent: 5 },
+  { days: 60, label: "2 months", interestPercent: 10 },
+  { days: 90, label: "3 months", interestPercent: 15 },
+] as const;
+
 // ─── Paystack Webhook IPs (for IP whitelisting) ──────────────────
 
 export const PAYSTACK_WEBHOOK_IPS = [

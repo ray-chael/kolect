@@ -129,6 +129,7 @@ export function FlashSaleEditForm({ sale }: { sale: FlashSaleEditData }) {
 
         <div className="flex items-center gap-3">
           <button
+            title='Set Is Active'
             type="button"
             role="switch"
             aria-checked={isActive}

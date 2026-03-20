@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Ade's Kolekt — Pre-Order & Installment Platform",
   description:
-    "Shop curated items at unbeatable prices. Pay a small deposit, contribute at your pace, and we deliver to your door. Pre-order and installment shopping in Nigeria.",
+    "Shop curated items at unbeatable prices. Pay small small at your pace, and we deliver to your door. Pre-order and installment shopping in Nigeria.",
 };
 
 export default async function HomePage() {
@@ -91,7 +91,7 @@ export default async function HomePage() {
             {/* CTAs — min 44px height, touch-friendly gap */}
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a
-                href="/products"
+                href="/collection"
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-7 text-sm font-semibold tracking-wide text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:bg-primary/90 active:scale-95"
               >
                 Explore Collection
@@ -252,7 +252,7 @@ export default async function HomePage() {
               The Process
             </p>
             <h2 className="font-display text-3xl tracking-tight md:text-4xl">
-              How &ldquo;Contribute to Buy&rdquo; Works
+              How &ldquo;Pay Small Small&rdquo; Works
             </h2>
           </div>
 
@@ -396,7 +396,7 @@ export default async function HomePage() {
                 </h2>
               </div>
               <a
-                href="/products?sort=most-viewed"
+                href="/collection?sort=most-viewed"
                 className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
               >
                 View all &rarr;
@@ -407,7 +407,7 @@ export default async function HomePage() {
               {trending.map((product) => (
                 <a
                   key={product.id}
-                  href={`/products/${product.slug}`}
+                  href={`/collection/${product.slug}`}
                   className="group overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-muted/60">
@@ -490,7 +490,7 @@ export default async function HomePage() {
                 </h2>
               </div>
               <a
-                href="/products"
+                href="/collection"
                 className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
               >
                 View all &rarr;
@@ -501,7 +501,7 @@ export default async function HomePage() {
               {featured.map((product) => (
                 <a
                   key={product.id}
-                  href={`/products/${product.slug}`}
+                  href={`/collection/${product.slug}`}
                   className="group overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
                 >
                   {/* Image — edge-to-edge, 4:3 ratio */}

@@ -43,7 +43,7 @@ export function InstallmentCalculator({
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
       <h3 className="font-semibold tracking-tight">
-        How &ldquo;Contribute to Buy&rdquo; works
+        How &ldquo;Pay Small Small&rdquo; works
       </h3>
 
       <ol className="space-y-2 text-sm text-muted-foreground list-decimal pl-4">

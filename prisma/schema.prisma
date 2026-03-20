@@ -31,6 +31,11 @@ model User {
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
 
+  createdGroupBuys      GroupBuy[]              @relation("GroupBuyCreator")
+  groupBuyContributions GroupBuyContribution[]  @relation("GroupBuyContributions")
+  createdHelpMePays     HelpMePay[]             @relation("HelpMePayCreator")
+  helpMePayContributions HelpMePayContribution[] @relation("HelpMePayContributions")
+
   @@map("users")
 }
 
@@ -169,6 +174,7 @@ model Product {
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
   views         ProductView[]
+  groupBuys     GroupBuy[]
 
   @@map("products")
 }
@@ -230,6 +236,8 @@ model Order {
 
   transactions  Transaction[]
   notifications Notification[]
+  groupBuy      GroupBuy?      @relation("GroupBuyOrder")
+  helpMePay     HelpMePay?     @relation("HelpMePayOrder")
 
   @@map("orders")
 }
@@ -397,4 +405,110 @@ model WishlistItem {
   @@unique([userId, productId])
   @@index([userId])
   @@map("wishlist_items")
+}
+
+// ─── Group Buy ("Contribute to Buy") ─────────────────────────
+
+model GroupBuy {
+  id              String         @id @default(cuid())
+  productId       String
+  product         Product        @relation(fields: [productId], references: [id])
+  creatorId       String
+  creator         User           @relation("GroupBuyCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  title           String         // e.g. "Let's buy the iPhone 16 together"
+  slug            String         @unique @default(cuid())
+  quantity        Int            @default(1)
+  selectedColor   String?
+  selectedSize    String?
+  splitType       SplitType      @default(FLEXIBLE)
+  targetAmount    Int            // Total amount needed in kobo (product price + interest)
+  interestPercent Float          @default(0) // Interest % based on deadline duration
+  amountRaised    Int            @default(0)
+  maxMembers      Int            @default(10)
+  status          GroupBuyStatus @default(OPEN)
+  orderId         String?        @unique
+  order           Order?         @relation("GroupBuyOrder", fields: [orderId], references: [id])
+  expiresAt       DateTime       // Deadline for contributions
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  contributions GroupBuyContribution[]
+
+  @@index([creatorId])
+  @@index([status])
+  @@map("group_buys")
+}
+
+enum SplitType {
+  EQUAL
+  FLEXIBLE
+}
+
+model GroupBuyContribution {
+  id           String            @id @default(cuid())
+  groupBuyId   String
+  groupBuy     GroupBuy          @relation(fields: [groupBuyId], references: [id], onDelete: Cascade)
+  userId       String?           // null = anonymous contributor
+  user         User?             @relation("GroupBuyContributions", fields: [userId], references: [id], onDelete: Cascade)
+  name         String?           // Contributor display name
+  email        String            // Email for ownership proof
+  amount       Int               // kobo
+  paystackRef  String            @unique
+  status       TransactionStatus @default(PENDING)
+  paystackData Json?
+  createdAt    DateTime          @default(now())
+
+  @@index([groupBuyId])
+  @@map("group_buy_contributions")
+}
+
+enum GroupBuyStatus {
+  OPEN
+  FUNDED
+  PURCHASED
+  EXPIRED
+  CANCELLED
+}
+
+// ─── Help Me Pay (Crowdfunding) ───────────────────────────────
+
+model HelpMePay {
+  id              String          @id @default(cuid())
+  orderId         String          @unique
+  order           Order           @relation("HelpMePayOrder", fields: [orderId], references: [id])
+  creatorId       String
+  creator         User            @relation("HelpMePayCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  slug            String          @unique @default(cuid())
+  message         String?         // "Help me buy this please!"
+  targetAmount    Int             // Remaining balance the user needs help with in kobo
+  interestAmount  Int             @default(0) // Extra amount due to deadline interest
+  amountRaised    Int             @default(0)
+  isActive        Boolean         @default(true)
+  expiresAt       DateTime
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  contributions HelpMePayContribution[]
+
+  @@index([creatorId])
+  @@map("help_me_pay")
+}
+
+model HelpMePayContribution {
+  id            String            @id @default(cuid())
+  helpMePayId   String
+  helpMePay     HelpMePay         @relation(fields: [helpMePayId], references: [id], onDelete: Cascade)
+  contributorId String?           // null = anonymous contributor
+  contributor   User?             @relation("HelpMePayContributions", fields: [contributorId], references: [id])
+  name          String?           // Contributor display name
+  email         String?           // Contributor email for receipt
+  amount        Int               // kobo
+  paystackRef   String            @unique
+  status        TransactionStatus @default(PENDING)
+  paystackData  Json?
+  createdAt     DateTime          @default(now())
+
+  @@index([helpMePayId])
+  @@map("help_me_pay_contributions")
 }

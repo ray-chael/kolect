@@ -51,7 +51,9 @@ export default async function OrdersPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-10">
-        <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Orders</p>
+        <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
+          Orders
+        </p>
         <h1 className="font-display text-4xl tracking-tight">My Orders</h1>
         <p className="mt-2 text-muted-foreground">
           Track your installment progress and order status.
@@ -62,7 +64,7 @@ export default async function OrdersPage() {
         <div className="py-20 text-center">
           <p className="text-muted-foreground">No orders yet.</p>
           <a
-            href="/products"
+            href="/collection"
             className="mt-4 inline-block text-sm font-medium text-primary hover:text-primary/80 transition-colors"
           >
             Browse collection &rarr;
@@ -73,7 +75,7 @@ export default async function OrdersPage() {
           {orders.map((order) => {
             const percent = calculateLiquidationPercent(
               order.amountPaid,
-              order.totalAmount
+              order.totalAmount,
             );
             const daysLeft = daysUntilExpiry(order.priceLockExpiresAt);
             const selections = formatSelections(order);
@@ -87,7 +89,9 @@ export default async function OrdersPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-semibold tracking-tight">{order.product.name}</h3>
+                    <h3 className="font-semibold tracking-tight">
+                      {order.product.name}
+                    </h3>
                     <p className="mt-0.5 text-sm text-muted-foreground">
                       {formatNaira(order.amountPaid)} of{" "}
                       {formatNaira(order.totalAmount)} paid
@@ -97,7 +101,9 @@ export default async function OrdersPage() {
                         {selections.join(" • ")}
                       </p>
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground">{fulfillment}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {fulfillment}
+                    </p>
                   </div>
                   <div className="text-right">
                     <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-medium">

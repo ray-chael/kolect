@@ -4,6 +4,7 @@ import { formatNaira } from "@/lib/types";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { ProductPurchasePanel } from "@/components/forms/product-purchase-panel";
+import { CreateGroupBuyForm } from "@/components/forms/create-group-buy-form";
 import { FlashSaleCountdown } from "@/components/shared/flash-sale-countdown";
 import { WishlistToggleButton } from "@/components/shared/wishlist-toggle-button";
 import { ProductViewTracker } from "@/components/shared/product-view-tracker";
@@ -119,7 +120,7 @@ export default async function ProductDetailPage({
         }}
       />
       <a
-        href="/products"
+        href="/collection"
         className="text-sm text-muted-foreground hover:text-primary transition-colors"
       >
         &larr; Back to Collection
@@ -279,6 +280,12 @@ export default async function ProductDetailPage({
             speedafEnabled={speedafEnabled}
             productWeightKg={product.weightKg ?? 0.5}
             deliveryRates={deliveryRates}
+          />
+
+          <CreateGroupBuyForm
+            productId={product.id}
+            colors={product.colors}
+            sizes={product.sizes}
           />
 
           {product.expectedProcurementAt && (

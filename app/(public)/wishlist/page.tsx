@@ -6,6 +6,7 @@ import { formatNaira } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingCart, Loader2 } from "lucide-react";
+import { SignInLink } from "@/components/shared/sign-in-link";
 
 export default function WishlistPage() {
   const { items, loading, toggle } = useWishlist();
@@ -32,7 +33,7 @@ export default function WishlistPage() {
           <Heart className="h-16 w-16 text-muted-foreground/40 mx-auto" />
           <p className="text-muted-foreground">Your wishlist is empty</p>
           <Link
-            href="/products"
+            href="/collection"
             className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Browse Collection
@@ -55,12 +56,9 @@ export default function WishlistPage() {
           <p className="text-sm text-muted-foreground">
             Sign in to view your wishlist details.
           </p>
-          <Link
-            href="/login"
-            className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <SignInLink className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
             Sign In
-          </Link>
+          </SignInLink>
         </div>
       </div>
     );
@@ -82,7 +80,7 @@ export default function WishlistPage() {
             className="group rounded-2xl border border-border/60 bg-card p-5 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
           >
             <div className="relative mb-4 aspect-square overflow-hidden rounded-xl bg-muted/60">
-              <Link href={`/products/${item.product.slug}`}>
+              <Link href={`/collection/${item.product.slug}`}>
                 {item.product.images[0] ? (
                   <Image
                     src={item.product.images[0]}
@@ -109,7 +107,7 @@ export default function WishlistPage() {
             </div>
 
             <Link
-              href={`/products/${item.product.slug}`}
+              href={`/collection/${item.product.slug}`}
               className="font-semibold tracking-tight transition-colors duration-300 group-hover:text-primary line-clamp-1"
             >
               {item.product.name}

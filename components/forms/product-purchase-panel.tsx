@@ -34,6 +34,7 @@ import {
   type ContributionCadence,
 } from "@/lib/utils";
 import { toast } from "sonner";
+import { SignInLink } from "@/components/shared/sign-in-link";
 
 type PurchaseMode = "buy-now" | "contribute";
 
@@ -475,7 +476,7 @@ export function ProductPurchasePanel({
               }`}
             >
               <p className="text-sm font-semibold tracking-tight">
-                Contribute to buy
+                Pay Small Small
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 20% deposit + installments
@@ -1233,15 +1234,12 @@ export function ProductPurchasePanel({
                     : "Creating order..."
                   : purchaseMode === "buy-now"
                     ? "Buy Immediately"
-                    : "Contribute to Buy"}
+                    : "Pay Small Small"}
               </Button>
             ) : (
-              <a
-                href="/login"
-                className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-medium tracking-wide text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/20"
-              >
+              <SignInLink className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-medium tracking-wide text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/20">
                 Log in to continue
-              </a>
+              </SignInLink>
             )}
           </>
         )}

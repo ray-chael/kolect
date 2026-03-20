@@ -16,7 +16,7 @@ function parseDate(value: FormDataEntryValue | null): Date | null {
 
 function revalidateFlashSalePaths() {
   revalidatePath("/admin/flash-sales");
-  revalidatePath("/products");
+  revalidatePath("/collection");
   revalidatePath("/");
 }
 

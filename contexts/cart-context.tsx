@@ -78,8 +78,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true);
 
       if (isAuthenticated) {
-        // If just signed in, sync guest cart first
-        if (prevAuth.current === false) {
+        // Sync guest cart on first authenticated load OR when transitioning from guest
+        if (prevAuth.current === false || prevAuth.current === null) {
           const guestItems = readGuestCart();
           if (guestItems.length > 0) {
             await syncCartFromGuest(guestItems);

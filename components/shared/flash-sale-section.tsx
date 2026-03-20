@@ -61,7 +61,7 @@ export function FlashSaleSection({
             </div>
           </div>
           <a
-            href="/products"
+            href="/collection"
             className="text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
           >
             See All &rarr;
@@ -78,7 +78,7 @@ export function FlashSaleSection({
             return (
               <a
                 key={product.id}
-                href={`/products/${product.slug}`}
+                href={`/collection/${product.slug}`}
                 className="group flex-shrink-0 w-36 sm:w-40 snap-start rounded-2xl border border-border/60 bg-card overflow-hidden transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
               >
                 {/* Image */}

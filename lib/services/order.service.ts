@@ -268,6 +268,7 @@ export const orderService = {
         transactions: { orderBy: { createdAt: "desc" } },
         deliveryAddress: true,
         pickupLocation: true,
+        helpMePay: { select: { slug: true, isActive: true } },
       },
     });
   },

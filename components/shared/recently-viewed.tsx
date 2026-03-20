@@ -72,7 +72,7 @@ export function RecentlyViewed({
           {products.map((p) => (
             <a
               key={p.id}
-              href={`/products/${p.slug}`}
+              href={`/collection/${p.slug}`}
               className="group flex-none w-36 rounded-xl border border-border/60 bg-card overflow-hidden transition-all hover:border-primary/30 hover:shadow-md"
             >
               <div className="relative aspect-square bg-muted/60">

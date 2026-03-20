@@ -1,4 +1,5 @@
 import { PaymentForm } from "@/components/forms/payment-form";
+import { CreateHelpMePayForm } from "@/components/forms/create-help-me-pay-form";
 import { Progress } from "@/components/ui/progress";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
@@ -14,8 +15,10 @@ function getSelectionEntries(order: {
 }) {
   const entries: Array<{ label: string; value: string }> = [];
 
-  if (order.selectedColor) entries.push({ label: "Color", value: order.selectedColor });
-  if (order.selectedSize) entries.push({ label: "Size", value: order.selectedSize });
+  if (order.selectedColor)
+    entries.push({ label: "Color", value: order.selectedColor });
+  if (order.selectedSize)
+    entries.push({ label: "Size", value: order.selectedSize });
 
   for (const [label, value] of Object.entries(
     coerceCustomSelections(order.customSelections),
@@ -48,7 +51,10 @@ export default async function OrderDetailPage({
     notFound();
   }
 
-  const percent = calculateLiquidationPercent(order.amountPaid, order.totalAmount);
+  const percent = calculateLiquidationPercent(
+    order.amountPaid,
+    order.totalAmount,
+  );
   const daysLeft = daysUntilExpiry(order.priceLockExpiresAt);
   const remaining = order.totalAmount - order.amountPaid;
   const selectionEntries = getSelectionEntries(order);
@@ -58,7 +64,10 @@ export default async function OrderDetailPage({
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-8">
-        <a href="/orders" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+        <a
+          href="/orders"
+          className="text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
           &larr; Back to orders
         </a>
       </div>
@@ -67,9 +76,12 @@ export default async function OrderDetailPage({
         {/* Order Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl tracking-tight">{order.product.name}</h1>
+            <h1 className="font-display text-3xl tracking-tight">
+              {order.product.name}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Order created {new Date(order.createdAt).toLocaleDateString("en-NG")}
+              Order created{" "}
+              {new Date(order.createdAt).toLocaleDateString("en-NG")}
             </p>
           </div>
           <span className="rounded-full bg-muted px-4 py-1.5 text-xs font-medium tracking-wide">
@@ -105,7 +117,9 @@ export default async function OrderDetailPage({
 
         {selectionEntries.length > 0 && (
           <div className="rounded-2xl border border-border/60 bg-card p-6">
-            <h2 className="font-semibold tracking-tight mb-4">Chosen Options</h2>
+            <h2 className="font-semibold tracking-tight mb-4">
+              Chosen Options
+            </h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {selectionEntries.map((entry) => (
                 <div
@@ -127,29 +141,43 @@ export default async function OrderDetailPage({
 
           {isPickup && order.pickupLocation ? (
             <div className="space-y-2 text-sm">
-              <p className="font-medium">Pickup at {order.pickupLocation.name}</p>
+              <p className="font-medium">
+                Pickup at {order.pickupLocation.name}
+              </p>
               <p className="text-muted-foreground">
                 {order.pickupLocation.addressLine1}
-                {order.pickupLocation.addressLine2 ? `, ${order.pickupLocation.addressLine2}` : ""}
+                {order.pickupLocation.addressLine2
+                  ? `, ${order.pickupLocation.addressLine2}`
+                  : ""}
                 {`, ${order.pickupLocation.city}, ${order.pickupLocation.state}`}
               </p>
               {order.pickupLocation.pickupInstructions && (
-                <p className="text-muted-foreground">{order.pickupLocation.pickupInstructions}</p>
+                <p className="text-muted-foreground">
+                  {order.pickupLocation.pickupInstructions}
+                </p>
               )}
             </div>
           ) : order.deliveryAddress ? (
             <div className="space-y-2 text-sm">
               <p className="font-medium">Door delivery</p>
-              <p className="text-muted-foreground">{order.deliveryAddress.recipientName}</p>
-              <p className="text-muted-foreground">{order.deliveryAddress.phone}</p>
+              <p className="text-muted-foreground">
+                {order.deliveryAddress.recipientName}
+              </p>
+              <p className="text-muted-foreground">
+                {order.deliveryAddress.phone}
+              </p>
               <p className="text-muted-foreground">
                 {order.deliveryAddress.addressLine1}
-                {order.deliveryAddress.addressLine2 ? `, ${order.deliveryAddress.addressLine2}` : ""}
+                {order.deliveryAddress.addressLine2
+                  ? `, ${order.deliveryAddress.addressLine2}`
+                  : ""}
                 {`, ${order.deliveryAddress.city}, ${order.deliveryAddress.state}`}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No fulfillment details recorded.</p>
+            <p className="text-sm text-muted-foreground">
+              No fulfillment details recorded.
+            </p>
           )}
 
           <p className="mt-3 text-xs text-muted-foreground">
@@ -160,23 +188,54 @@ export default async function OrderDetailPage({
         {/* Make Payment */}
         {["PENDING", "PARTIAL"].includes(order.status) && (
           <div className="rounded-2xl border border-border/60 bg-card p-6">
-            <h2 className="font-semibold tracking-tight mb-4">Make a Payment</h2>
+            <h2 className="font-semibold tracking-tight mb-4">
+              Make a Payment
+            </h2>
             <PaymentForm
               orderId={order.id}
               remainingKobo={remaining}
               isDepositPaid={order.isDepositPaid}
               preferFullPayment={
-                !order.isDepositPaid && order.installmentMonths === 1 && !contributionPlanOrder
+                !order.isDepositPaid &&
+                order.installmentMonths === 1 &&
+                !contributionPlanOrder
               }
             />
           </div>
         )}
 
+        {/* Help Me Pay */}
+        {["PENDING", "PARTIAL"].includes(order.status) && !order.helpMePay && (
+          <CreateHelpMePayForm orderId={order.id} />
+        )}
+        {order.helpMePay && (
+          <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-2">
+            <h2 className="font-semibold tracking-tight">Help Me Pay</h2>
+            <p className="text-sm text-muted-foreground">
+              {order.helpMePay.isActive
+                ? "Your campaign is active. Share the link below:"
+                : "Campaign is no longer active."}
+            </p>
+            {order.helpMePay.isActive && (
+              <a
+                href={`/help-me-pay/${order.helpMePay.slug}`}
+                className="text-sm font-medium text-primary hover:underline break-all"
+              >
+                /help-me-pay/{order.helpMePay.slug}
+              </a>
+            )}
+          </div>
+        )}
+
         {/* Transaction History */}
         <div className="rounded-2xl border border-border/60 bg-card p-6">
-          <h2 className="font-semibold tracking-tight mb-4">Transaction History</h2>
+          <h2 className="font-semibold tracking-tight mb-4">
+            Transaction History
+          </h2>
           {order.transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No transactions yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No transactions yet.
+            </p>
           ) : (
             <div className="space-y-2">
               {order.transactions.map((tx) => (
@@ -200,8 +259,8 @@ export default async function OrderDetailPage({
                         tx.status === "SUCCESS"
                           ? "text-green-600 dark:text-green-400"
                           : tx.status === "FAILED"
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-muted-foreground"
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-muted-foreground"
                       }`}
                     >
                       {tx.status}
@@ -216,7 +275,9 @@ export default async function OrderDetailPage({
         {/* Delivery Info */}
         {order.riderName && (
           <div className="rounded-2xl border border-border/60 bg-card p-6">
-            <h2 className="font-semibold tracking-tight mb-3">Delivery Details</h2>
+            <h2 className="font-semibold tracking-tight mb-3">
+              Delivery Details
+            </h2>
             <p className="text-sm">Rider: {order.riderName}</p>
             {order.riderPhone && (
               <p className="text-sm">Phone: {order.riderPhone}</p>

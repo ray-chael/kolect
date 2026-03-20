@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SignInLink } from "@/components/shared/sign-in-link";
 
 export default function CartPage() {
   const { items, loading, updateQuantity, removeItem, clearAll } = useCart();
@@ -32,7 +33,7 @@ export default function CartPage() {
           <ShoppingBag className="h-16 w-16 text-muted-foreground/40 mx-auto" />
           <p className="text-muted-foreground">Your cart is empty</p>
           <Link
-            href="/products"
+            href="/collection"
             className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Browse Collection
@@ -50,17 +51,15 @@ export default function CartPage() {
         <div className="py-24 text-center space-y-4">
           <ShoppingBag className="h-16 w-16 text-muted-foreground/40 mx-auto" />
           <p className="text-muted-foreground">
-            You have {items.length} item{items.length !== 1 ? "s" : ""} in your cart.
+            You have {items.length} item{items.length !== 1 ? "s" : ""} in your
+            cart.
           </p>
           <p className="text-sm text-muted-foreground">
             Sign in to view your cart details and checkout.
           </p>
-          <Link
-            href="/login"
-            className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <SignInLink className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
             Sign In
-          </Link>
+          </SignInLink>
         </div>
       </div>
     );
@@ -94,7 +93,7 @@ export default function CartPage() {
           >
             {/* Image */}
             <Link
-              href={`/products/${item.product.slug}`}
+              href={`/collection/${item.product.slug}`}
               className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-muted/60"
             >
               {item.product.images[0] ? (
@@ -116,7 +115,7 @@ export default function CartPage() {
             <div className="flex flex-1 flex-col justify-between min-w-0">
               <div>
                 <Link
-                  href={`/products/${item.product.slug}`}
+                  href={`/collection/${item.product.slug}`}
                   className="font-semibold tracking-tight hover:text-primary transition-colors line-clamp-1"
                 >
                   {item.product.name}
@@ -130,7 +129,9 @@ export default function CartPage() {
                 {/* Quantity controls */}
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                    onClick={() =>
+                      updateQuantity(item.productId, item.quantity - 1)
+                    }
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
                     aria-label="Decrease quantity"
                   >
@@ -140,7 +141,9 @@ export default function CartPage() {
                     {item.quantity}
                   </span>
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                    onClick={() =>
+                      updateQuantity(item.productId, item.quantity + 1)
+                    }
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
                     aria-label="Increase quantity"
                   >
@@ -170,7 +173,8 @@ export default function CartPage() {
       <div className="mt-8 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm text-muted-foreground">
-            Subtotal ({validItems.length} item{validItems.length !== 1 ? "s" : ""})
+            Subtotal ({validItems.length} item
+            {validItems.length !== 1 ? "s" : ""})
           </span>
           <span className="text-lg font-bold">{formatNaira(subtotal)}</span>
         </div>
@@ -179,7 +183,7 @@ export default function CartPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
-            href="/products"
+            href="/collection"
             className="flex-1 flex items-center justify-center rounded-full border border-border/60 px-6 py-2.5 text-sm font-medium text-foreground hover:border-primary/40 hover:text-primary transition-colors"
           >
             Continue Shopping
