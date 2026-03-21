@@ -2,6 +2,7 @@ import {
   getHelpMePay,
   verifyAndProcessHmpContribution,
 } from "@/actions/help-me-pay";
+import { getBankTransferDetails } from "@/actions/settings";
 import { formatNaira } from "@/lib/types";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -67,7 +68,10 @@ export default async function HelpMePayPage({
     await verifyAndProcessHmpContribution(reference);
   }
 
-  const campaign = await getHelpMePay(slug);
+  const [campaign, bankTransfer] = await Promise.all([
+    getHelpMePay(slug),
+    getBankTransferDetails(),
+  ]);
 
   if (!campaign) notFound();
 
@@ -233,6 +237,7 @@ export default async function HelpMePayPage({
               <HelpMePayContributeForm
                 helpMePayId={campaign.id}
                 remaining={remaining}
+                bankTransfer={bankTransfer}
               />
             </div>
           ) : (

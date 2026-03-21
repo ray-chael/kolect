@@ -6,7 +6,6 @@ import {
   type DeliveryRates,
 } from "@/lib/utils/delivery-rates";
 import { createOrder } from "@/actions/orders";
-import { initiatePayment } from "@/actions/orders";
 import { getSpeedafQuote } from "@/actions/shipping";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -396,33 +395,7 @@ export function ProductPurchasePanel({
       ) {
         const orderId = String(result.data.orderId);
 
-        const paymentFormData = new FormData();
-        paymentFormData.set("orderId", orderId);
-
-        if (purchaseMode === "buy-now") {
-          paymentFormData.set("amount", String(grandTotal));
-        } else {
-          // Contribute mode — collect 20% deposit upfront
-          paymentFormData.set("amount", String(contributionPlan.depositAmount));
-        }
-
-        const paymentResult = await initiatePayment(paymentFormData);
-        if (!paymentResult.success) {
-          toast.error(paymentResult.message ?? "Unable to start payment.");
-          window.location.href = `/orders/${orderId}`;
-          return;
-        }
-
-        toast.success(
-          purchaseMode === "buy-now"
-            ? "Order created. Redirecting to secure checkout..."
-            : "Order created. Redirecting to pay your 20% deposit...",
-        );
-        if (paymentResult.data?.authorizationUrl) {
-          window.location.href = paymentResult.data.authorizationUrl;
-          return;
-        }
-
+        toast.success("Order created! Choose how you\'d like to pay.");
         window.location.href = `/orders/${orderId}`;
       }
     });

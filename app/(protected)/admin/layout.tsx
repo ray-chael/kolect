@@ -57,6 +57,12 @@ export default async function AdminLayout({
               Sales
             </a>
             <a
+              href="/admin/webhooks"
+              className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
+              Webhooks
+            </a>
+            <a
               href="/admin/support"
               className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
             >

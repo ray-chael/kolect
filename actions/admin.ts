@@ -8,6 +8,7 @@ import { generateSlug } from "@/lib/utils";
 import type { ActionResult } from "@/lib/types";
 import { notificationService } from "@/lib/services/notification.service";
 import { emailService } from "@/lib/services/email.service";
+import { prisma } from "@/lib/db";
 
 function parseJsonField<T>(value: FormDataEntryValue | null, fallback: T): T {
   if (typeof value !== "string" || value.trim() === "") return fallback;
@@ -240,11 +241,141 @@ export async function getProcurementQueue(): Promise<ActionResult> {
   try {
     await requireRole("CRIMSON");
     const orders = await orderService.getReadyForProcurement();
-    return { success: true, message: "Procurement queue retrieved", data: orders };
+    return {
+      success: true,
+      message: "Procurement queue retrieved",
+      data: orders,
+    };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to fetch procurement queue",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch procurement queue",
+    };
+  }
+}
+
+// ─── Live Mode Transition ─────────────────────────────────────
+
+export interface WipePreview {
+  orders: number;
+  transactions: number;
+  notifications: number;
+  webhookLogs: number;
+  cartItems: number;
+  wishlistItems: number;
+  productViews: number;
+  groupBuys: number;
+  helpMePays: number;
+  supportTickets: number;
+  paymentProofs: number;
+  adminActions: number;
+  campaignMessages: number;
+  orderMessages: number;
+}
+
+export async function getWipePreview(): Promise<ActionResult> {
+  try {
+    await requireRole("CRIMSON");
+
+    const [
+      orders,
+      transactions,
+      notifications,
+      webhookLogs,
+      cartItems,
+      wishlistItems,
+      productViews,
+      groupBuys,
+      helpMePays,
+      supportTickets,
+      paymentProofs,
+      adminActions,
+      campaignMessages,
+      orderMessages,
+    ] = await Promise.all([
+      prisma.order.count(),
+      prisma.transaction.count(),
+      prisma.notification.count(),
+      prisma.webhookLog.count(),
+      prisma.cartItem.count(),
+      prisma.wishlistItem.count(),
+      prisma.productView.count(),
+      prisma.groupBuy.count(),
+      prisma.helpMePay.count(),
+      prisma.supportTicket.count(),
+      prisma.paymentProof.count(),
+      prisma.adminAction.count(),
+      prisma.campaignMessage.count(),
+      prisma.orderMessage.count(),
+    ]);
+
+    const preview: WipePreview = {
+      orders,
+      transactions,
+      notifications,
+      webhookLogs,
+      cartItems,
+      wishlistItems,
+      productViews,
+      groupBuys,
+      helpMePays,
+      supportTickets,
+      paymentProofs,
+      adminActions,
+      campaignMessages,
+      orderMessages,
+    };
+
+    return { success: true, message: "Preview ready", data: preview };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to get preview",
+    };
+  }
+}
+
+export async function wipeTransactionalData(
+  confirmationText: string,
+): Promise<ActionResult> {
+  try {
+    await requireRole("CRIMSON");
+
+    if (confirmationText !== "DELETE ALL TEST DATA") {
+      return { success: false, message: "Confirmation text does not match." };
+    }
+
+    // Delete in dependency order (children before parents)
+    await prisma.webhookLog.deleteMany({});
+    await prisma.campaignMessage.deleteMany({});
+    await prisma.supportMessage.deleteMany({});
+    await prisma.supportTicket.deleteMany({});
+    await prisma.paymentProof.deleteMany({});
+    await prisma.orderMessage.deleteMany({});
+    await prisma.notification.deleteMany({});
+    await prisma.transaction.deleteMany({});
+    await prisma.groupBuyContribution.deleteMany({});
+    await prisma.helpMePayContribution.deleteMany({});
+    await prisma.groupBuy.deleteMany({});
+    await prisma.helpMePay.deleteMany({});
+    await prisma.cartItem.deleteMany({});
+    await prisma.wishlistItem.deleteMany({});
+    await prisma.productView.deleteMany({});
+    await prisma.adminAction.deleteMany({});
+    await prisma.order.deleteMany({});
+
+    return {
+      success: true,
+      message:
+        "All transactional data has been deleted. Products, categories, and settings are intact.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Wipe failed",
     };
   }
 }

@@ -1,4 +1,5 @@
 import { getGroupBuy } from "@/actions/group-buy";
+import { getBankTransferDetails } from "@/actions/settings";
 import { formatNaira } from "@/lib/types";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -47,7 +48,10 @@ export default async function GroupBuyPage({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
-  const groupBuy = await getGroupBuy(slug);
+  const [groupBuy, bankTransfer] = await Promise.all([
+    getGroupBuy(slug),
+    getBankTransferDetails(),
+  ]);
 
   if (!groupBuy) notFound();
 
@@ -220,6 +224,7 @@ export default async function GroupBuyPage({
                 targetAmount={groupBuy.targetAmount}
                 contributorCount={groupBuy.contributions.length}
                 maxMembers={groupBuy.maxMembers}
+                bankTransfer={bankTransfer}
               />
             </div>
           ) : (

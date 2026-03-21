@@ -10,6 +10,7 @@ const adminLinks = [
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/pickup-locations", label: "Pickup" },
+  { href: "/admin/webhooks", label: "Webhooks" },
   { href: "/admin/support", label: "Support" },
   { href: "/admin/payment-proofs", label: "Proofs" },
   { href: "/admin/settings", label: "Settings" },
