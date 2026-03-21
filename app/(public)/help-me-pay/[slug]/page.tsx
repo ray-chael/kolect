@@ -1,10 +1,14 @@
-import { getHelpMePay } from "@/actions/help-me-pay";
+import {
+  getHelpMePay,
+  verifyAndProcessHmpContribution,
+} from "@/actions/help-me-pay";
 import { formatNaira } from "@/lib/types";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { HelpMePayContributeForm } from "./contribute-form";
 import { ProductVideoThumbnail } from "@/components/shared/product-video-thumbnail";
+import { ShareButton } from "@/components/shared/share-button";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +60,13 @@ export default async function HelpMePayPage({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
+
+  // Verify payment in case webhook was delayed or missed
+  const reference = typeof sp.reference === "string" ? sp.reference : undefined;
+  if (sp.payment === "success" && reference) {
+    await verifyAndProcessHmpContribution(reference);
+  }
+
   const campaign = await getHelpMePay(slug);
 
   if (!campaign) notFound();
@@ -79,14 +90,28 @@ export default async function HelpMePayPage({
     ),
   );
 
+  const campaignUrl = `${process.env.NEXT_PUBLIC_APP_URL}/help-me-pay/${campaign.slug}`;
+  const shareTitle = `Help ${campaign.creator.name ?? "someone"} pay for ${product.name}`;
+  const shareText =
+    campaign.message ??
+    `Contribute to help fund ${product.name}. ${formatNaira(remaining)} still needed!`;
+
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
-      <Link
-        href="/collection"
-        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-      >
-        &larr; Back to Collection
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/collection"
+          className="text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          &larr; Back to Collection
+        </Link>
+        <ShareButton
+          url={campaignUrl}
+          title={shareTitle}
+          text={shareText}
+          label="Share Campaign"
+        />
+      </div>
 
       {paymentSuccess && (
         <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-600 dark:text-green-400">
@@ -138,8 +163,7 @@ export default async function HelpMePayPage({
               {isActive ? "Active" : isExpired ? "Expired" : "Closed"}
             </span>
             <h1 className="font-display text-2xl sm:text-3xl tracking-tight">
-              Help {campaign.creator.name ?? "someone"} pay for{" "}
-              {product.name}
+              Help {campaign.creator.name ?? "someone"} pay for {product.name}
             </h1>
             {campaign.message && (
               <p className="mt-2 text-sm text-muted-foreground">

@@ -403,7 +403,7 @@ export default async function HomePage() {
               </a>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
               {trending.map((product) => (
                 <a
                   key={product.id}
@@ -497,7 +497,7 @@ export default async function HomePage() {
               </a>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
               {featured.map((product) => (
                 <a
                   key={product.id}

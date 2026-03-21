@@ -97,11 +97,13 @@ export function NotificationBell({
   return (
     <div ref={ref} className="relative">
       <Button
+        variant="ghost"
+        size="icon"
         onClick={handleOpen}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="relative rounded-full text-muted-foreground"
       >
         <Bell className="h-4.5 w-4.5" />
         {unreadCount > 0 && (

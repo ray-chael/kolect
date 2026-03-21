@@ -39,6 +39,12 @@ export function ProtectedHeaderClient({
           >
             Shop
           </a>
+          <a
+            href="/campaigns"
+            className="hidden sm:inline text-sm tracking-wide uppercase text-muted-foreground hover:text-primary transition-colors duration-300"
+          >
+            My Campaigns
+          </a>
           <ThemeToggle />
           <WishlistIcon />
           <CartIcon />

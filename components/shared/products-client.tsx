@@ -377,7 +377,7 @@ export function ProductsClient({
 
       {/* ── Grid ── */}
       {filterPending ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <ProductSkeleton key={i} />
           ))}
@@ -395,7 +395,7 @@ export function ProductsClient({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((product) => (
             <a
               key={product.id}
@@ -514,7 +514,7 @@ export function ProductsClient({
 
       {/* Append skeleton rows while loading more */}
       {loadingMore && (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <ProductSkeleton key={i} />
           ))}

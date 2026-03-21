@@ -21,6 +21,8 @@ const SUBJECTS: Record<NotificationType, string> = {
   DELIVERED: "Your order has been delivered",
   PRICE_LOCK_WARNING: "Action required: price lock expiring soon",
   ORDER_EXPIRED: "Your order has expired",
+  CAMPAIGN_CONTRIBUTION: "Someone contributed to your campaign",
+  CAMPAIGN_FUNDED: "Your Help Me Pay campaign is fully funded!",
 };
 
 export const emailService = {

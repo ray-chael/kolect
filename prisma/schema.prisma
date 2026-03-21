@@ -329,6 +329,8 @@ enum NotificationType {
   DELIVERED
   PRICE_LOCK_WARNING
   ORDER_EXPIRED
+  CAMPAIGN_CONTRIBUTION
+  CAMPAIGN_FUNDED
 }
 
 enum NotificationStatus {
@@ -519,4 +521,20 @@ model HelpMePayContribution {
 
   @@index([helpMePayId])
   @@map("help_me_pay_contributions")
+}
+
+// ─── Webhook Log ──────────────────────────────────────────────────
+
+model WebhookLog {
+  id          String   @id @default(cuid())
+  source      String   // e.g. "paystack"
+  event       String   // e.g. "charge.success"
+  reference   String?  // payment reference if present
+  rawBody     String   @db.Text
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@index([source])
+  @@index([reference])
+  @@map("webhook_logs")
 }

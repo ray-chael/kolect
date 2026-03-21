@@ -16,7 +16,9 @@ export const notificationService = {
       | "OUT_FOR_DELIVERY"
       | "DELIVERED"
       | "PRICE_LOCK_WARNING"
-      | "ORDER_EXPIRED";
+      | "ORDER_EXPIRED"
+      | "CAMPAIGN_CONTRIBUTION"
+      | "CAMPAIGN_FUNDED";
     message: string;
   }) {
     return prisma.notification.create({ data });

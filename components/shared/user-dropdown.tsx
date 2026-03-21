@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth-client";
-import { LogOut, User, ShoppingBag, ShoppingCart, Heart } from "lucide-react";
+import {
+  LogOut,
+  User,
+  ShoppingBag,
+  ShoppingCart,
+  Heart,
+  HeartHandshake,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
 
@@ -109,13 +116,23 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
               <Heart className="h-4 w-4 text-muted-foreground" />
               My Wishlist
             </Link>
+            <Link
+              href="/campaigns"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <HeartHandshake className="h-4 w-4 text-muted-foreground" />
+              My Campaigns
+            </Link>
           </div>
 
           <div className="border-t border-border/40 py-1">
             <Button
+              variant="ghost"
               role="menuitem"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-muted transition-colors"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:text-destructive hover:bg-muted/50 transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Sign Out

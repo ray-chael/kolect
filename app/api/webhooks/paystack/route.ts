@@ -10,6 +10,8 @@ import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import React from "react";
 import { GroupBuyOwnershipEmail } from "@/emails/group-buy-ownership";
+import { HelpMePayFundedEmail } from "@/emails/help-me-pay-funded";
+import { HelpMePayContributionReceiptEmail } from "@/emails/help-me-pay-contribution-receipt";
 
 /**
  * Verify Paystack webhook signature using HMAC SHA-512
@@ -37,6 +39,21 @@ export async function POST(request: NextRequest) {
     }
 
     const event: PaystackWebhookEvent = JSON.parse(body);
+
+    // Persist raw webhook payload (fire-and-forget)
+    prisma.webhookLog
+      .create({
+        data: {
+          source: "paystack",
+          event: event.event,
+          reference: (event.data as Record<string, unknown>)?.reference as
+            | string
+            | undefined,
+          rawBody: body,
+          payload: JSON.parse(body),
+        },
+      })
+      .catch(console.error);
 
     // Only process successful charges
     if (event.event !== "charge.success") {
@@ -261,13 +278,28 @@ async function sendOwnershipEmails(
 
 // ─── Help Me Pay Contribution Processing ──────────────────────────
 
+interface HmpNotifyData {
+  creatorId: string;
+  creatorEmail: string;
+  creatorName: string | null;
+  productName: string;
+  contributorName: string | null;
+  contributorEmail: string | null;
+  contributionAmount: number;
+  isFunded: boolean;
+  orderId: string | null;
+  campaignSlug: string;
+}
+
 async function processHelpMePayContribution(
   contributionId: string,
   amountKobo: number,
   paystackData: Record<string, unknown>,
 ) {
+  let notifyData: HmpNotifyData | null = null;
+
   await prisma.$transaction(async (tx) => {
-    // Mark contribution as successful
+    // 1. Mark contribution as successful
     const contribution = await tx.helpMePayContribution.update({
       where: { id: contributionId },
       data: {
@@ -279,23 +311,26 @@ async function processHelpMePayContribution(
       },
     });
 
-    // Increment amount raised
+    // 2. Increment amount raised
     const helpMePay = await tx.helpMePay.update({
       where: { id: contribution.helpMePayId },
       data: { amountRaised: { increment: amountKobo } },
+      include: {
+        product: true,
+        creator: { select: { id: true, email: true, name: true } },
+      },
     });
 
-    // Apply payment to the linked order (only if this campaign came from an order)
+    const isFunded = helpMePay.amountRaised >= helpMePay.targetAmount;
+    let finalOrderId = helpMePay.orderId;
+
+    // 3. Apply payment to linked order (order-linked campaign)
     if (helpMePay.orderId) {
       const order = await tx.order.findUniqueOrThrow({
         where: { id: helpMePay.orderId },
       });
 
-      if (
-        order.status !== "PAID" &&
-        order.status !== "CANCELLED" &&
-        order.status !== "EXPIRED"
-      ) {
+      if (!["PAID", "CANCELLED", "EXPIRED"].includes(order.status)) {
         const newAmountPaid = order.amountPaid + amountKobo;
         const isFullyPaid = newAmountPaid >= order.totalAmount;
         const depositThreshold = Math.round(order.totalAmount * 0.2);
@@ -313,12 +348,126 @@ async function processHelpMePayContribution(
       }
     }
 
-    // Deactivate campaign if target reached
-    if (helpMePay.amountRaised >= helpMePay.targetAmount) {
+    // 4. Product-first campaign fully funded: create order
+    if (
+      isFunded &&
+      !helpMePay.orderId &&
+      helpMePay.productId &&
+      helpMePay.product
+    ) {
+      const priceLockExpiresAt = new Date();
+      priceLockExpiresAt.setDate(
+        priceLockExpiresAt.getDate() + helpMePay.product.priceLockDays,
+      );
+
+      const order = await tx.order.create({
+        data: {
+          userId: helpMePay.creatorId,
+          productId: helpMePay.productId,
+          quantity: helpMePay.quantity,
+          selectedColor: helpMePay.selectedColor,
+          selectedSize: helpMePay.selectedSize,
+          totalAmount: helpMePay.product.markupPrice * helpMePay.quantity,
+          amountPaid: helpMePay.product.markupPrice * helpMePay.quantity,
+          status: "PAID",
+          isDepositPaid: true,
+          completedAt: new Date(),
+          priceLockExpiresAt,
+          installmentMonths: 1,
+          customSelections: { Fulfillment: "Help Me Pay" },
+        },
+      });
+
+      finalOrderId = order.id;
+      await tx.helpMePay.update({
+        where: { id: helpMePay.id },
+        data: { orderId: order.id, isActive: false },
+      });
+    } else if (isFunded) {
+      // Order-linked campaign: just deactivate
       await tx.helpMePay.update({
         where: { id: helpMePay.id },
         data: { isActive: false },
       });
     }
+
+    notifyData = {
+      creatorId: helpMePay.creatorId,
+      creatorEmail: helpMePay.creator.email,
+      creatorName: helpMePay.creator.name,
+      productName: helpMePay.product?.name ?? "your product",
+      contributorName: contribution.name,
+      contributorEmail: contribution.email,
+      contributionAmount: amountKobo,
+      isFunded,
+      orderId: finalOrderId,
+      campaignSlug: helpMePay.slug,
+    };
+  });
+
+  if (!notifyData) return;
+    const nd = notifyData as HmpNotifyData;
+  // 5. Notify creator of every contribution
+  notificationService
+    .queue({
+      userId: nd.creatorId,
+      orderId: nd.orderId ?? undefined,
+      channel: "WHATSAPP",
+      type: "CAMPAIGN_CONTRIBUTION",
+      message: `${nd.contributorName ?? "Someone"} contributed ${formatNaira(nd.contributionAmount)} to your Help Me Pay campaign for ${nd.productName}!`,
+    })
+    .catch(console.error);
+
+  // 6. If fully funded: notify + email creator
+  if (nd.isFunded) {
+    notificationService
+      .queue({
+        userId: nd.creatorId,
+        orderId: nd.orderId ?? undefined,
+        channel: "WHATSAPP",
+        type: "CAMPAIGN_FUNDED",
+        message: `Your Help Me Pay campaign for ${nd.productName} is fully funded! Your order has been placed.`,
+      })
+      .catch(console.error);
+
+    setTimeout(() => {
+      sendCampaignFundedEmail(nd).catch(console.error);
+    }, 0);
+  }
+
+  // 7. Email contributor receipt
+  if (nd.contributorEmail) {
+    setTimeout(() => {
+      sendContributionReceiptEmail(nd).catch(console.error);
+    }, 0);
+  }
+}
+
+async function sendCampaignFundedEmail(nd: HmpNotifyData) {
+  await sendEmail({
+    to: nd.creatorEmail,
+    subject: "Your Help Me Pay campaign is fully funded!",
+    react: React.createElement(HelpMePayFundedEmail, {
+      creatorName: nd.creatorName ?? nd.creatorEmail.split("@")[0],
+      productName: nd.productName,
+      totalAmount: formatNaira(nd.contributionAmount),
+      orderId: nd.orderId,
+      campaignSlug: nd.campaignSlug,
+    }),
+  });
+}
+
+async function sendContributionReceiptEmail(nd: HmpNotifyData) {
+  if (!nd.contributorEmail) return;
+  await sendEmail({
+    to: nd.contributorEmail,
+    subject: `Your contribution to ${nd.creatorName ?? "a friend"}'s campaign`,
+    react: React.createElement(HelpMePayContributionReceiptEmail, {
+      contributorName: nd.contributorName ?? "Contributor",
+      productName: nd.productName,
+      amountContributed: formatNaira(nd.contributionAmount),
+      campaignSlug: nd.campaignSlug,
+      creatorName: nd.creatorName ?? "your friend",
+    }),
   });
 }
