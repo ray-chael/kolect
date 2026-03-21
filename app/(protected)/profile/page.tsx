@@ -2,6 +2,8 @@ import { requireSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { AddressManager } from "@/components/forms/address-manager";
+import { ActiveDevices } from "@/components/shared/active-devices";
+import { getActiveSessions } from "@/actions/sessions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,16 +11,21 @@ export default async function ProfilePage() {
   const session = await requireSession().catch(() => null);
   if (!session) redirect("/login");
 
-  const addresses = await prisma.deliveryAddress.findMany({
-    where: { userId: session.user.id },
-    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-  });
+  const [addresses, activeSessions] = await Promise.all([
+    prisma.deliveryAddress.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    }),
+    getActiveSessions(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12 space-y-12">
       {/* Header */}
       <div>
-        <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">Account</p>
+        <p className="text-xs tracking-[0.25em] uppercase text-primary mb-2">
+          Account
+        </p>
         <h1 className="font-display text-4xl tracking-tight">My Profile</h1>
         <p className="mt-2 text-muted-foreground">
           Manage your account information and delivery addresses.
@@ -59,6 +66,9 @@ export default async function ProfilePage() {
         </div>
         <AddressManager addresses={addresses} />
       </section>
+
+      {/* Active sessions / devices */}
+      <ActiveDevices sessions={activeSessions} />
     </div>
   );
 }
