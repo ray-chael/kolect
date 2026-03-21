@@ -259,7 +259,7 @@ export function ProductsClient({
                 <div className="absolute right-0 top-full mt-2 z-50 min-w-[180px] max-h-60 overflow-y-auto rounded-xl border border-border/60 bg-card shadow-lg py-1">
                   <button
                     onClick={() => handleCategoryChange("")}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-muted/60 ${
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted/60 ${
                       !categoryId
                         ? "text-primary font-medium"
                         : "text-foreground"
@@ -272,16 +272,14 @@ export function ProductsClient({
                     <button
                       key={cat.id}
                       onClick={() => handleCategoryChange(cat.id)}
-                      className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-muted/60 ${
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted/60 ${
                         categoryId === cat.id
                           ? "text-primary font-medium"
                           : "text-foreground"
                       }`}
                     >
                       {categoryId === cat.id && <Check className="h-3 w-3" />}
-                      {cat.parent
-                        ? `${cat.parent.name} › ${cat.name}`
-                        : cat.name}
+                      {cat.parent ? cat.parent.name : cat.name}
                     </button>
                   ))}
                 </div>
