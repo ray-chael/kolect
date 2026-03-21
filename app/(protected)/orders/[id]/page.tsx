@@ -7,6 +7,7 @@ import { orderService } from "@/lib/services/order.service";
 import { coerceCustomSelections, formatNaira } from "@/lib/types";
 import { calculateLiquidationPercent, daysUntilExpiry } from "@/lib/utils";
 import { notFound } from "next/navigation";
+import { getBankTransferDetails } from "@/actions/settings";
 
 function getSelectionEntries(order: {
   selectedColor: string | null;
@@ -45,7 +46,10 @@ export default async function OrderDetailPage({
   if (!session) redirect("/login");
 
   const { id } = await params;
-  const order = await orderService.getById(id);
+  const [order, bankTransfer] = await Promise.all([
+    orderService.getById(id),
+    getBankTransferDetails(),
+  ]);
 
   if (!order || order.userId !== session.user.id) {
     notFound();
@@ -200,6 +204,7 @@ export default async function OrderDetailPage({
                 order.installmentMonths === 1 &&
                 !contributionPlanOrder
               }
+              bankTransfer={bankTransfer}
             />
           </div>
         )}

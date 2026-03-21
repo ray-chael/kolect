@@ -43,6 +43,18 @@ const GROUPS: { title: string; description?: string; keys: string[] }[] = [
     keys: ["defaultDeliveryFee", "lagosLgaRates", "stateDeliveryRates"],
   },
   {
+    title: "Bank Transfer",
+    description:
+      "When enabled, customers can choose to pay via bank transfer on the order payment page. They will be shown your account details and asked to email the receipt.",
+    keys: [
+      "bankTransferEnabled",
+      "bankName",
+      "bankAccountName",
+      "bankAccountNumber",
+      "bankTransferNote",
+    ],
+  },
+  {
     title: "Speedaf Logistics",
     description:
       "Enable Speedaf to offer third-party doorstep delivery. Credentials are provided by Speedaf upon account setup.",

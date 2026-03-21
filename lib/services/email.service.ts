@@ -23,6 +23,10 @@ const SUBJECTS: Record<NotificationType, string> = {
   ORDER_EXPIRED: "Your order has expired",
   CAMPAIGN_CONTRIBUTION: "Someone contributed to your campaign",
   CAMPAIGN_FUNDED: "Your Help Me Pay campaign is fully funded!",
+  SUPPORT_TICKET_OPENED: "New support ticket",
+  ORDER_MESSAGE_RECEIVED: "New message about an order",
+  CAMPAIGN_MESSAGE_RECEIVED: "New message about a campaign",
+  PAYMENT_PROOF_SUBMITTED: "Payment proof submitted",
 };
 
 export const emailService = {

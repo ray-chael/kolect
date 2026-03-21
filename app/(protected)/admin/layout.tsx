@@ -57,6 +57,18 @@ export default async function AdminLayout({
               Sales
             </a>
             <a
+              href="/admin/support"
+              className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
+              Support
+            </a>
+            <a
+              href="/admin/payment-proofs"
+              className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
+              Proofs
+            </a>
+            <a
               href="/admin/settings"
               className="text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
             >

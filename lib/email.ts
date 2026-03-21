@@ -11,13 +11,16 @@ export interface SendEmailOptions {
   to: string;
   subject: string;
   react: ReactElement;
+  replyTo?: string;
 }
 
 /**
  * Send a transactional email via Resend.
  * Returns the message ID on success, null on failure (never throws).
  */
-export async function sendEmail(options: SendEmailOptions): Promise<string | null> {
+export async function sendEmail(
+  options: SendEmailOptions,
+): Promise<string | null> {
   try {
     const html = await render(options.react);
     const { data, error } = await resend.emails.send({
@@ -25,6 +28,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<string | nul
       to: options.to,
       subject: options.subject,
       html,
+      ...(options.replyTo ? { reply_to: options.replyTo } : {}),
     });
 
     if (error) {

@@ -137,6 +137,37 @@ const DEFAULTS: SystemSetting[] = [
     type: "string",
     label: "Sender State",
   },
+  // ─── Bank Transfer ────────────────────────────────────────────
+  {
+    key: "bankTransferEnabled",
+    value: "false",
+    type: "boolean",
+    label: "Enable Bank Transfer Payment Option",
+  },
+  {
+    key: "bankName",
+    value: "",
+    type: "string",
+    label: "Bank Name",
+  },
+  {
+    key: "bankAccountName",
+    value: "",
+    type: "string",
+    label: "Account Name",
+  },
+  {
+    key: "bankAccountNumber",
+    value: "",
+    type: "string",
+    label: "Account Number",
+  },
+  {
+    key: "bankTransferNote",
+    value: "",
+    type: "string",
+    label: "Transfer Instructions (optional)",
+  },
 ];
 
 // ─── Public read (server components can call this) ────────────
@@ -153,6 +184,37 @@ export async function getSystemSettings(): Promise<SystemSetting[]> {
   } catch {
     return DEFAULTS;
   }
+}
+
+export interface BankTransferDetails {
+  enabled: boolean;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  note: string;
+}
+
+export async function getBankTransferDetails(): Promise<BankTransferDetails> {
+  const keys = [
+    "bankTransferEnabled",
+    "bankName",
+    "bankAccountName",
+    "bankAccountNumber",
+    "bankTransferNote",
+  ];
+  const rows = await prisma.systemSetting.findMany({
+    where: { key: { in: keys } },
+  });
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  const get = (k: string) =>
+    map.get(k) ?? DEFAULTS.find((d) => d.key === k)?.value ?? "";
+  return {
+    enabled: get("bankTransferEnabled") === "true",
+    bankName: get("bankName"),
+    accountName: get("bankAccountName"),
+    accountNumber: get("bankAccountNumber"),
+    note: get("bankTransferNote"),
+  };
 }
 
 export async function getSettingValue(key: string): Promise<string> {

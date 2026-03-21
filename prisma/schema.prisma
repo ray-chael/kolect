@@ -35,6 +35,7 @@ model User {
   groupBuyContributions GroupBuyContribution[]  @relation("GroupBuyContributions")
   createdHelpMePays     HelpMePay[]             @relation("HelpMePayCreator")
   helpMePayContributions HelpMePayContribution[] @relation("HelpMePayContributions")
+  supportTickets         SupportTicket[]
 
   @@map("users")
 }
@@ -239,6 +240,8 @@ model Order {
   notifications Notification[]
   groupBuy      GroupBuy?      @relation("GroupBuyOrder")
   helpMePay     HelpMePay?     @relation("HelpMePayOrder")
+  paymentProofs PaymentProof[]
+  messages      OrderMessage[]
 
   @@map("orders")
 }
@@ -331,6 +334,10 @@ enum NotificationType {
   ORDER_EXPIRED
   CAMPAIGN_CONTRIBUTION
   CAMPAIGN_FUNDED
+  SUPPORT_TICKET_OPENED
+  ORDER_MESSAGE_RECEIVED
+  CAMPAIGN_MESSAGE_RECEIVED
+  PAYMENT_PROOF_SUBMITTED
 }
 
 enum NotificationStatus {
@@ -521,6 +528,106 @@ model HelpMePayContribution {
 
   @@index([helpMePayId])
   @@map("help_me_pay_contributions")
+}
+
+// ─── Inbound Email Inbox ─────────────────────────────────────────
+
+model PaymentProof {
+  id             String             @id @default(cuid())
+  orderId        String
+  order          Order              @relation(fields: [orderId], references: [id])
+  fromEmail      String
+  subject        String
+  resendEmailId  String             @unique
+  attachmentUrls String[]           @default([])
+  rawAttachments Json               @default("[]")
+  status         PaymentProofStatus @default(PENDING)
+  adminNotes     String?            @db.Text
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@map("payment_proofs")
+}
+
+enum PaymentProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model SupportTicket {
+  id            String              @id @default(cuid())
+  fromEmail     String
+  fromName      String?
+  subject       String
+  body          String?             @db.Text
+  resendEmailId String              @unique
+  status        SupportTicketStatus @default(OPEN)
+  orderId       String?
+  userId        String?
+  user          User?               @relation(fields: [userId], references: [id])
+  assignedTo    String?
+  adminNotes    String?             @db.Text
+  closedAt      DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([status])
+  @@index([userId])
+  @@map("support_tickets")
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+model SupportMessage {
+  id            String        @id @default(cuid())
+  ticketId      String
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromEmail     String
+  body          String        @db.Text
+  resendEmailId String?
+  isFromAdmin   Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("support_messages")
+}
+
+model OrderMessage {
+  id            String   @id @default(cuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id])
+  fromEmail     String
+  body          String   @db.Text
+  resendEmailId String   @unique
+  createdAt     DateTime @default(now())
+
+  @@index([orderId])
+  @@map("order_messages")
+}
+
+model CampaignMessage {
+  id           String   @id @default(cuid())
+  campaignType String   // "help_me_pay" | "group_buy"
+  campaignId   String
+  fromEmail    String
+  fromName     String?
+  body         String   @db.Text
+  resendEmailId String  @unique
+  createdAt    DateTime @default(now())
+
+  @@index([campaignId])
+  @@map("campaign_messages")
 }
 
 // ─── Webhook Log ──────────────────────────────────────────────────

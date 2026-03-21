@@ -18,7 +18,11 @@ export const notificationService = {
       | "PRICE_LOCK_WARNING"
       | "ORDER_EXPIRED"
       | "CAMPAIGN_CONTRIBUTION"
-      | "CAMPAIGN_FUNDED";
+      | "CAMPAIGN_FUNDED"
+      | "SUPPORT_TICKET_OPENED"
+      | "ORDER_MESSAGE_RECEIVED"
+      | "CAMPAIGN_MESSAGE_RECEIVED"
+      | "PAYMENT_PROOF_SUBMITTED";
     message: string;
   }) {
     return prisma.notification.create({ data });
