@@ -379,6 +379,179 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── More Ways to Buy ──────────────────────────────────── */}
+      <section className="border-t border-border/40">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 sm:py-20">
+          <div className="mb-10">
+            <p className="mb-2 text-xs uppercase tracking-[0.25em] text-primary">
+              Platform Features
+            </p>
+            <h2 className="font-display text-3xl tracking-tight md:text-4xl">
+              More Ways to Get What You Want
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Beyond solo payments — collaborate with others, get your people to
+              fund your purchase, or grab a limited flash deal.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            {/* ── Group Buy ── */}
+            <a
+              href="/group-buy"
+              className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-7 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5"
+            >
+              {/* ambient glow */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-10 -top-10 h-52 w-52 rounded-full bg-emerald-500/8 blur-3xl"
+              />
+
+              <div className="relative mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600">
+                Group Buy
+              </p>
+              <h3 className="font-display text-xl tracking-tight">
+                Split the cost with your crew
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Pool contributions with friends or join an open campaign.
+                Everyone pays less — we procure once the target amount is
+                reached.
+              </p>
+
+              <ul className="mt-5 space-y-2">
+                {[
+                  "Start a group buy from any product page",
+                  "Set flexible or equal split amounts",
+                  "Contributors join until the deadline",
+                ].map((b) => (
+                  <li
+                    key={b}
+                    className="flex items-center gap-2.5 text-xs text-muted-foreground"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-7 flex items-center gap-1.5 text-sm font-semibold text-emerald-600 transition-all duration-200 group-hover:gap-3">
+                Browse open group buys
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </div>
+            </a>
+
+            {/* ── Help Me Pay ── */}
+            <a
+              href="/collection"
+              className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-7 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+            >
+              {/* ambient glow */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-10 -top-10 h-52 w-52 rounded-full bg-primary/8 blur-3xl"
+              />
+
+              <div className="relative mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </div>
+
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                Help Me Pay
+              </p>
+              <h3 className="font-display text-xl tracking-tight">
+                Share a link, get funded
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Pick any item, create a campaign, and share the link with your
+                people. Friends, family, or followers contribute any amount
+                toward your purchase.
+              </p>
+
+              <ul className="mt-5 space-y-2">
+                {[
+                  "Create a campaign from any product page",
+                  "Share link on WhatsApp, Instagram, X, anywhere",
+                  "Anyone can contribute — no account needed",
+                ].map((b) => (
+                  <li
+                    key={b}
+                    className="flex items-center gap-2.5 text-xs text-muted-foreground"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-7 flex items-center gap-1.5 text-sm font-semibold text-primary transition-all duration-200 group-hover:gap-3">
+                Browse products to start
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── Flash Sales ───────────────────────────────────────── */}
       <FlashSaleSection products={flashSaleProducts} />
 
