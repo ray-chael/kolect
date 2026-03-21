@@ -7,6 +7,12 @@ import { WelcomeEmail } from "@/emails/welcome";
 import { SignInAlertEmail } from "@/emails/sign-in-alert";
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [
+    "https://www.kolekt.com.ng",
+    "https://kolekt.com.ng",
+    "https://ades-kolect.vercel.app",
+  ],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
