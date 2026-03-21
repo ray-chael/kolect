@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { initiatePayment } from "@/actions/orders";
+import { initiatePayment, notifyTransferSent } from "@/actions/orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,20 @@ export function PaymentForm({
 }: PaymentFormProps) {
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<"card" | "transfer">("card");
+  const [transferNotified, setTransferNotified] = useState(false);
+  const [isNotifying, startNotifyTransition] = useTransition();
+
+  function handleTransferNotify() {
+    startNotifyTransition(async () => {
+      const result = await notifyTransferSent(orderId);
+      if (!result.success && result.message !== "Already notified") {
+        toast.error(result.message ?? "Failed to notify");
+        return;
+      }
+      setTransferNotified(true);
+      toast.success("We've been notified! We'll confirm your payment shortly.");
+    });
+  }
 
   const minNaira = Math.max(
     koboToNaira(MIN_INSTALLMENT_KOBO),
@@ -159,6 +173,19 @@ export function PaymentForm({
               We&apos;ll confirm your payment within 1 business day.
             </p>
           </div>
+
+          <Button
+            type="button"
+            className="w-full h-11 rounded-full font-medium tracking-wide"
+            disabled={isNotifying || transferNotified}
+            onClick={handleTransferNotify}
+          >
+            {transferNotified
+              ? "✓ Admin notified"
+              : isNotifying
+                ? "Notifying..."
+                : "I have sent the money"}
+          </Button>
         </div>
       )}
 

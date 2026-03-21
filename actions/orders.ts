@@ -12,6 +12,7 @@ import {
     computeDeliveryFeeKobo,
     parseDeliveryRates,
 } from "@/lib/utils/delivery-rates";
+import { notificationService } from "@/lib/services/notification.service";
 
 function parseSelectionMap(
   value: FormDataEntryValue | null,
@@ -149,7 +150,7 @@ export async function createOrder(formData: FormData): Promise<ActionResult> {
  * Initiate a payment (installment) for an order
  */
 export async function initiatePayment(
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionResult<{ authorizationUrl: string; reference: string }>> {
   try {
     const session = await requireSession();
@@ -174,8 +175,15 @@ export async function initiatePayment(
       return { success: false, message: "Order not found" };
     }
 
-    if (order.status === "PAID" || order.status === "CANCELLED" || order.status === "EXPIRED") {
-      return { success: false, message: `Order is ${order.status.toLowerCase()}` };
+    if (
+      order.status === "PAID" ||
+      order.status === "CANCELLED" ||
+      order.status === "EXPIRED"
+    ) {
+      return {
+        success: false,
+        message: `Order is ${order.status.toLowerCase()}`,
+      };
     }
 
     // Cap payment at remaining balance
@@ -210,7 +218,73 @@ export async function initiatePayment(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to initiate payment",
+      message:
+        error instanceof Error ? error.message : "Failed to initiate payment",
+    };
+  }
+}
+
+/**
+ * Notify admin that the user has manually sent a bank transfer.
+ * Creates a PaymentProof record so the admin can confirm.
+ */
+export async function notifyTransferSent(
+  orderId: string,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    const order = await orderService.getById(orderId);
+    if (!order || order.userId !== session.user.id) {
+      return { success: false, message: "Order not found" };
+    }
+
+    if (["PAID", "CANCELLED", "EXPIRED"].includes(order.status)) {
+      return {
+        success: false,
+        message: `Order is already ${order.status.toLowerCase()}`,
+      };
+    }
+
+    // Prevent duplicate notifications for the same order
+    const syntheticId = `manual_${orderId}`;
+    const existing = await prisma.paymentProof.findUnique({
+      where: { resendEmailId: syntheticId },
+    });
+    if (existing) {
+      return { success: true, message: "Already notified" };
+    }
+
+    await prisma.paymentProof.create({
+      data: {
+        orderId,
+        fromEmail: session.user.email,
+        subject: `Manual transfer notification for order ${orderId}`,
+        resendEmailId: syntheticId,
+        attachmentUrls: [],
+        rawAttachments: [],
+      },
+    });
+
+    // Notify admin
+    const admin = await prisma.user.findFirst({ where: { role: "CRIMSON" } });
+    if (admin) {
+      notificationService
+        .queue({
+          userId: admin.id,
+          orderId,
+          channel: "EMAIL",
+          type: "PAYMENT_PROOF_SUBMITTED",
+          message: `${session.user.name ?? session.user.email} says they've sent a bank transfer for order #${orderId.slice(-8).toUpperCase()}.`,
+        })
+        .catch(console.error);
+    }
+
+    return { success: true, message: "Admin notified" };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to notify",
     };
   }
 }
