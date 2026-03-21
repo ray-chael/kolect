@@ -56,26 +56,47 @@ export async function getAttachmentBuffer(
   attachmentId: string,
 ): Promise<{ buffer: Buffer; filename: string; contentType: string } | null> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.error(
+      "[ResendInbound] RESEND_API_KEY is not set — cannot fetch attachment",
+    );
+    return null;
+  }
 
   try {
     // Get attachment metadata to find filename
     const emailData = await getReceivedEmail(emailId);
     const att = emailData?.attachments.find((a) => a.id === attachmentId);
 
-    const res = await fetch(
-      `${RESEND_API_BASE}/emails/received/${emailId}/attachments/${attachmentId}`,
-      { headers: { Authorization: `Bearer ${apiKey}` }, cache: "no-store" },
-    );
-    if (!res.ok) return null;
+    const url = `${RESEND_API_BASE}/emails/received/${emailId}/attachments/${attachmentId}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "(unreadable)");
+      console.error(
+        `[ResendInbound] Attachment fetch failed ${res.status}: ${text} — URL: ${url}`,
+      );
+      return null;
+    }
 
     const data = (await res.json()) as { content: string };
+    if (!data.content) {
+      console.error(
+        `[ResendInbound] Attachment response had no content field for ${attachmentId}`,
+      );
+      return null;
+    }
+
     return {
       buffer: Buffer.from(data.content, "base64"),
       filename: att?.filename ?? attachmentId,
       contentType: att?.content_type ?? "application/octet-stream",
     };
-  } catch {
+  } catch (err) {
+    console.error("[ResendInbound] getAttachmentBuffer threw:", err);
     return null;
   }
 }
