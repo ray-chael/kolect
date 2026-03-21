@@ -1,7 +1,7 @@
 import { Link, Section, Text } from "@react-email/components";
 import { BaseLayout, styles } from "./base-layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.ng";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.com.ng";
 
 interface PaymentProofReceivedEmailProps {
   fromName: string;
@@ -28,7 +28,9 @@ export function PaymentProofReceivedEmail({
 
       <Section style={styles.highlight}>
         <Text style={styles.highlightLabel}>Order</Text>
-        <Text style={styles.highlightValue}>#{orderId.slice(-8).toUpperCase()}</Text>
+        <Text style={styles.highlightValue}>
+          #{orderId.slice(-8).toUpperCase()}
+        </Text>
       </Section>
 
       {attachmentCount > 0 && (
@@ -51,7 +53,7 @@ export function PaymentProofReceivedEmail({
 
       <Text style={styles.mutedText}>
         If your order isn&apos;t updated within 24 hours, please contact us at{" "}
-        support@kolekt.ng.
+        support@kolekt.com.ng.
       </Text>
     </BaseLayout>
   );

@@ -12,7 +12,7 @@ import {
 } from "@react-email/components";
 import type { ReactNode } from "react";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.ng";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.com.ng";
 
 interface BaseEmailProps {
   preview: string;
@@ -49,7 +49,8 @@ export function BaseLayout({ preview, heading, children }: BaseEmailProps) {
               .
             </Text>
             <Text style={footerText}>
-              &copy; {new Date().getFullYear()} Ade&apos;s Kolekt. All rights reserved.
+              &copy; {new Date().getFullYear()} Ade&apos;s Kolekt. All rights
+              reserved.
             </Text>
           </Section>
         </Container>
@@ -175,16 +176,17 @@ export const styles = {
     margin: "16px 0 0",
   } as React.CSSProperties,
 
-  pill: (color: string) => ({
-    backgroundColor: color,
-    borderRadius: "100px",
-    display: "inline-block",
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.08em",
-    padding: "4px 12px",
-    textTransform: "uppercase" as const,
-  }) as React.CSSProperties,
+  pill: (color: string) =>
+    ({
+      backgroundColor: color,
+      borderRadius: "100px",
+      display: "inline-block",
+      fontSize: "11px",
+      fontWeight: "600",
+      letterSpacing: "0.08em",
+      padding: "4px 12px",
+      textTransform: "uppercase" as const,
+    }) as React.CSSProperties,
 
   strongText: {
     color: "#ffffff",

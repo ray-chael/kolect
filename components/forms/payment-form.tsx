@@ -138,13 +138,22 @@ export function PaymentForm({
             <p>
               Send your receipt to{" "}
               <a
-                href={`mailto:receipts@kolekt.ng?subject=Payment for Order ${orderId}`}
+                href={`mailto:receipts@kolekt.com.ng?subject=Payment for Order ${orderId}`}
                 className="font-mono underline underline-offset-2"
               >
-                receipts@kolekt.ng
+                receipts@kolekt.com.ng
               </a>{" "}
               with your order ID in the subject line:{" "}
-              <span className="font-mono text-xs break-all">{orderId}</span>
+              <button
+                type="button"
+                className="font-mono text-xs break-all underline underline-offset-2 hover:opacity-75 transition-opacity cursor-copy"
+                onClick={() => {
+                  navigator.clipboard.writeText(orderId);
+                  toast.success("Order ID copied");
+                }}
+              >
+                {orderId}
+              </button>
             </p>
             <p className="text-xs opacity-75">
               We&apos;ll confirm your payment within 1 business day.

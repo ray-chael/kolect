@@ -177,15 +177,24 @@ export function HelpMePayContributeForm({
             <p>
               Send your receipt to{" "}
               <a
-                href={`mailto:receipts@kolekt.ng?subject=Help Me Pay Contribution: ${helpMePayId}`}
+                href={`mailto:receipts@kolekt.com.ng?subject=Help Me Pay Contribution: ${helpMePayId}`}
                 className="font-mono underline underline-offset-2"
               >
-                receipts@kolekt.ng
+                receipts@kolekt.com.ng
               </a>{" "}
               with subject:{" "}
-              <span className="font-mono text-xs break-all">
+              <button
+                type="button"
+                className="font-mono text-xs break-all underline underline-offset-2 hover:opacity-75 transition-opacity cursor-copy"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `Help Me Pay Contribution: ${helpMePayId}`,
+                  );
+                  toast.success("Subject copied");
+                }}
+              >
                 Help Me Pay Contribution: {helpMePayId}
-              </span>
+              </button>
             </p>
             <p className="text-xs opacity-75">
               We&apos;ll confirm your contribution within 1 business day.

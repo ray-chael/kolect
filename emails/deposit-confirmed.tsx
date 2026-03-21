@@ -1,7 +1,7 @@
 import { Link, Section, Text } from "@react-email/components";
 import { BaseLayout, styles } from "./base-layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.ng";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.com.ng";
 
 interface DepositConfirmedEmailProps {
   customerName: string;

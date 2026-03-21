@@ -14,6 +14,7 @@ import React from "react";
 import { SupportTicketReceivedEmail } from "@/emails/support-ticket-received";
 import { SupportTicketNotificationEmail } from "@/emails/support-ticket-notification";
 import { PaymentProofReceivedEmail } from "@/emails/payment-proof-received";
+import { PaymentProofNoOrderIdEmail } from "@/emails/payment-proof-no-order-id";
 import { OrderReplyAutoEmail } from "@/emails/order-reply-auto";
 import { CampaignMessageAutoEmail } from "@/emails/campaign-message-auto";
 
@@ -161,13 +162,14 @@ async function handlePaymentProof(
   // Extract order ID from subject
   const orderId = extractOrderId(data.subject) ?? extractOrderId(data.from);
   if (!orderId) {
-    // Can't link without an order ID — still create a support ticket fallback
-    await handleSupportTicket(data);
+    // No order ID — look up sender's pending orders and send a helpful reply
+    await handlePaymentProofNoOrderId(data);
     return;
   }
 
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
+    // Order ID provided but not found — treat as support ticket
     await handleSupportTicket(data);
     return;
   }
@@ -216,7 +218,7 @@ async function handlePaymentProof(
       orderId,
       attachmentCount: attachmentUrls.length,
     }),
-    replyTo: "support@kolekt.ng",
+    replyTo: "support@kolekt.com.ng",
   }).catch(console.error);
 
   // Notify admin
@@ -252,13 +254,67 @@ async function handlePaymentProof(
           "a",
           {
             key: "5",
-            href: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.ng"}/admin/payment-proofs/${proof.id}`,
+            href: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://kolekt.com.ng"}/admin/payment-proofs/${proof.id}`,
           },
           "Review Payment Proof",
         ),
       ]),
     }).catch(console.error);
   }
+}
+
+// ─── 1b. Payment Proof — No Order ID ────────────────────────────
+
+async function handlePaymentProofNoOrderId(
+  data: ResendInboundEvent["data"],
+): Promise<void> {
+  const { name: fromName, email: fromEmail } = parseSenderName(data.from);
+
+  // Idempotency: if a support ticket with this email already exists, skip
+  const existing = await prisma.supportTicket.findUnique({
+    where: { resendEmailId: data.email_id },
+  });
+  if (existing) return;
+
+  // Find the sender's pending orders (to help them identify their order ID)
+  const user = await prisma.user.findUnique({ where: { email: fromEmail } });
+  const pendingOrders = user
+    ? await prisma.order.findMany({
+        where: {
+          userId: user.id,
+          status: { in: ["PENDING", "PARTIAL"] },
+        },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      })
+    : [];
+
+  // Create a support ticket so the admin can see the unmatched proof
+  await prisma.supportTicket.create({
+    data: {
+      fromEmail,
+      fromName,
+      subject: `Unmatched payment proof: ${data.subject}`,
+      body: "(No order ID found in subject)",
+      resendEmailId: data.email_id,
+      userId: user?.id ?? null,
+    },
+  });
+
+  // Send a helpful reply asking them to resend with the order ID
+  sendEmail({
+    to: fromEmail,
+    subject: `Action needed — include your order ID`,
+    react: React.createElement(PaymentProofNoOrderIdEmail, {
+      fromName,
+      pendingOrders: pendingOrders.map((o) => ({
+        id: o.id,
+        shortId: o.id.slice(-8).toUpperCase(),
+      })),
+    }),
+    replyTo: "receipts@kolekt.com.ng",
+  }).catch(console.error);
 }
 
 // ─── 2. Support Ticket ───────────────────────────────────────────
@@ -308,7 +364,7 @@ async function handleSupportTicket(
       subject: data.subject,
       ticketId: ticket.id,
     }),
-    replyTo: "support@kolekt.ng",
+    replyTo: "support@kolekt.com.ng",
   }).catch(console.error);
 
   // Notify admin
@@ -350,7 +406,8 @@ async function handleOrderReply(
 ): Promise<void> {
   const { name: fromName, email: fromEmail } = parseSenderName(data.from);
 
-  const orderId = extractOrderId(data.subject) ?? extractOrderId(data.message_id);
+  const orderId =
+    extractOrderId(data.subject) ?? extractOrderId(data.message_id);
   if (!orderId) {
     // Fall through to support ticket
     await handleSupportTicket(data);
@@ -393,7 +450,7 @@ async function handleOrderReply(
       orderId,
       currentStatus: order.status,
     }),
-    replyTo: "orders@kolekt.ng",
+    replyTo: "orders@kolekt.com.ng",
   }).catch(console.error);
 
   // Notify admin
@@ -502,7 +559,7 @@ async function handleCampaignMessage(
         campaignSlug,
         productName,
       }),
-      replyTo: "campaigns@kolekt.ng",
+      replyTo: "campaigns@kolekt.com.ng",
     }).catch(console.error);
   }
 
@@ -512,7 +569,11 @@ async function handleCampaignMessage(
       to: creatorEmail,
       subject: `Message about your campaign: ${productName}`,
       react: React.createElement("div", {}, [
-        React.createElement("p", { key: "1" }, `From: ${fromName} <${fromEmail}>`),
+        React.createElement(
+          "p",
+          { key: "1" },
+          `From: ${fromName} <${fromEmail}>`,
+        ),
         React.createElement("p", { key: "2" }, body),
       ]),
       replyTo: fromEmail,
