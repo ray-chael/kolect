@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Bell } from "lucide-react";
+import Link from "next/link";
 import {
   getMyNotifications,
   markNotificationRead,
@@ -146,8 +147,9 @@ export function NotificationBell({
               </p>
             ) : (
               notifications.map((n) => (
-                <Button
+                <button
                   key={n.id}
+                  type="button"
                   onClick={() => {
                     if (!n.readAt) handleMarkRead(n.id);
                     if (n.orderId)
@@ -174,9 +176,20 @@ export function NotificationBell({
                   <span className="text-[11px] text-muted-foreground/70">
                     {relativeTime(n.createdAt)}
                   </span>
-                </Button>
+                </button>
               ))
             )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-border px-4 py-2.5">
+            <Link
+              href="/notifications"
+              className="block text-center text-xs text-muted-foreground transition-colors hover:text-primary"
+              onClick={() => setOpen(false)}
+            >
+              View all notifications
+            </Link>
           </div>
         </div>
       )}

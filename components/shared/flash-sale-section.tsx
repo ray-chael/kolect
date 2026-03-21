@@ -61,7 +61,7 @@ export function FlashSaleSection({
             </div>
           </div>
           <a
-            href="/collection"
+            href="/flash-sales"
             className="text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
           >
             See All &rarr;

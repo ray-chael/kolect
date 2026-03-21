@@ -11,6 +11,7 @@ import { OutForDeliveryEmail } from "@/emails/out-for-delivery";
 import { DeliveredEmail } from "@/emails/delivered";
 import { PriceLockWarningEmail } from "@/emails/price-lock-warning";
 import { OrderExpiredEmail } from "@/emails/order-expired";
+import { GenericNotificationEmail } from "@/emails/generic-notification";
 
 const SUBJECTS: Record<NotificationType, string> = {
   PAYMENT_RECEIVED: "Payment received on your order",
@@ -39,7 +40,7 @@ export const emailService = {
     type: NotificationType,
     userId: string,
     orderId?: string,
-    extras?: { amountKobo?: number }
+    extras?: { amountKobo?: number },
   ): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user?.email) return;
@@ -51,10 +52,7 @@ export const emailService = {
         })
       : null;
 
-    if (!order) return;
-
     const customerName = user.name ?? user.email.split("@")[0];
-    const productName = order.product.name;
     const amountKobo = extras?.amountKobo ?? 0;
 
     const formatDate = (d: Date) =>
@@ -63,73 +61,86 @@ export const emailService = {
     let react: React.ReactElement;
 
     switch (type) {
-      case "PAYMENT_RECEIVED":
+      case "PAYMENT_RECEIVED": {
+        if (!order) return;
         react = React.createElement(PaymentReceivedEmail, {
           customerName,
           amountPaid: formatNaira(amountKobo),
           balanceRemaining: formatNaira(order.totalAmount - order.amountPaid),
-          productName,
+          productName: order.product.name,
           orderId: order.id,
         });
         break;
+      }
 
-      case "DEPOSIT_CONFIRMED":
+      case "DEPOSIT_CONFIRMED": {
+        if (!order) return;
         react = React.createElement(DepositConfirmedEmail, {
           customerName,
           depositAmount: formatNaira(amountKobo),
-          productName,
+          productName: order.product.name,
           priceLockExpiresAt: formatDate(order.priceLockExpiresAt),
           orderId: order.id,
         });
         break;
+      }
 
-      case "ORDER_FULLY_PAID":
+      case "ORDER_FULLY_PAID": {
+        if (!order) return;
         react = React.createElement(OrderFullyPaidEmail, {
           customerName,
-          productName,
+          productName: order.product.name,
           totalAmount: formatNaira(order.totalAmount),
           orderId: order.id,
         });
         break;
+      }
 
-      case "ITEM_PROCURED":
+      case "ITEM_PROCURED": {
+        if (!order) return;
         react = React.createElement(ItemProcuredEmail, {
           customerName,
-          productName,
+          productName: order.product.name,
           orderId: order.id,
         });
         break;
+      }
 
-      case "OUT_FOR_DELIVERY":
+      case "OUT_FOR_DELIVERY": {
+        if (!order) return;
         react = React.createElement(OutForDeliveryEmail, {
           customerName,
-          productName,
+          productName: order.product.name,
           riderName: order.riderName ?? undefined,
           riderPhone: order.riderPhone ?? undefined,
           trackingNote: order.trackingNote ?? undefined,
           orderId: order.id,
         });
         break;
+      }
 
-      case "DELIVERED":
+      case "DELIVERED": {
+        if (!order) return;
         react = React.createElement(DeliveredEmail, {
           customerName,
-          productName,
+          productName: order.product.name,
           orderId: order.id,
         });
         break;
+      }
 
       case "PRICE_LOCK_WARNING": {
+        if (!order) return;
         const daysLeft = Math.max(
           0,
           Math.ceil(
             (order.priceLockExpiresAt.getTime() - Date.now()) /
-              (1000 * 60 * 60 * 24)
-          )
+              (1000 * 60 * 60 * 24),
+          ),
         );
         react = React.createElement(PriceLockWarningEmail, {
           customerName,
-          productName,
+          productName: order.product.name,
           daysLeft,
           balanceRemaining: formatNaira(order.totalAmount - order.amountPaid),
           priceLockExpiresAt: formatDate(order.priceLockExpiresAt),
@@ -138,13 +149,36 @@ export const emailService = {
         break;
       }
 
-      case "ORDER_EXPIRED":
+      case "ORDER_EXPIRED": {
+        if (!order) return;
         react = React.createElement(OrderExpiredEmail, {
           customerName,
-          productName,
+          productName: order.product.name,
           orderId: order.id,
         });
         break;
+      }
+
+      case "CAMPAIGN_CONTRIBUTION":
+      case "CAMPAIGN_FUNDED":
+      case "SUPPORT_TICKET_OPENED":
+      case "ORDER_MESSAGE_RECEIVED":
+      case "CAMPAIGN_MESSAGE_RECEIVED":
+      case "PAYMENT_PROOF_SUBMITTED": {
+        // Look up the most recent notification of this type to get the message text
+        const notification = await prisma.notification.findFirst({
+          where: { userId, type },
+          orderBy: { createdAt: "desc" },
+          select: { message: true },
+        });
+        const message = notification?.message ?? SUBJECTS[type];
+        react = React.createElement(GenericNotificationEmail, {
+          customerName,
+          message,
+          subject: SUBJECTS[type],
+        });
+        break;
+      }
 
       default:
         return;
