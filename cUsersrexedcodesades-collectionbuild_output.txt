@@ -1,0 +1,8 @@
+
+> ades-collection@0.1.0 build C:\Users\rexed\codes\ades-collection
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...

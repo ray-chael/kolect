@@ -45,6 +45,12 @@ export function ProtectedHeaderClient({
           >
             My Campaigns
           </a>
+          <a
+            href="/support"
+            className="hidden sm:inline text-sm tracking-wide uppercase text-muted-foreground hover:text-primary transition-colors duration-300"
+          >
+            Support
+          </a>
           <ThemeToggle />
           <WishlistIcon />
           <CartIcon />

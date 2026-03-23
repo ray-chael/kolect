@@ -1,13 +1,224 @@
 "use server";
 
-import { requireRole } from "@/lib/session";
+import { requireRole, requireSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import type { ActionResult } from "@/lib/types";
 import React from "react";
-import { PaymentProofStatus, SupportTicketStatus } from "@/app/generated/prisma/enums";
+import {
+  PaymentProofStatus,
+  SupportTicketStatus,
+} from "@/app/generated/prisma/enums";
 
-// ─── Support Tickets ─────────────────────────────────────────────
+// ─── Shopper-Facing Ticket Actions ───────────────────────────────
+
+/**
+ * Create a new support ticket from the logged-in shopper.
+ */
+export async function createTicket(
+  subject: string,
+  body: string,
+  orderId?: string,
+): Promise<ActionResult<{ ticketId: string }>> {
+  try {
+    const session = await requireSession();
+    const trimmedSubject = subject.trim();
+    const trimmedBody = body.trim();
+
+    if (!trimmedSubject || trimmedSubject.length < 3) {
+      return {
+        success: false,
+        message: "Subject must be at least 3 characters.",
+      };
+    }
+    if (!trimmedBody || trimmedBody.length < 10) {
+      return {
+        success: false,
+        message: "Message must be at least 10 characters.",
+      };
+    }
+
+    // If orderId provided, verify it belongs to this user
+    if (orderId) {
+      const order = await prisma.order.findFirst({
+        where: { id: orderId, userId: session.user.id },
+      });
+      if (!order) {
+        return { success: false, message: "Order not found." };
+      }
+    }
+
+    const ticket = await prisma.supportTicket.create({
+      data: {
+        fromEmail: session.user.email,
+        fromName: session.user.name,
+        subject: trimmedSubject,
+        body: trimmedBody,
+        userId: session.user.id,
+        orderId: orderId ?? null,
+      },
+    });
+
+    // Send confirmation email to shopper
+    const { SupportTicketReceivedEmail } =
+      await import("@/emails/support-ticket-received");
+    await sendEmail({
+      to: session.user.email,
+      subject: `We've received your support request — #${ticket.id.slice(-8).toUpperCase()}`,
+      react: React.createElement(SupportTicketReceivedEmail, {
+        fromName: session.user.name,
+        subject: trimmedSubject,
+        ticketId: ticket.id,
+      }),
+      replyTo: "support@kolekt.ng",
+    });
+
+    // Notify admin
+    const { SupportTicketNotificationEmail } =
+      await import("@/emails/support-ticket-notification");
+    await sendEmail({
+      to: process.env.ADMIN_EMAIL ?? "support@kolekt.ng",
+      subject: `New support ticket from ${session.user.name}: ${trimmedSubject}`,
+      react: React.createElement(SupportTicketNotificationEmail, {
+        fromEmail: session.user.email,
+        fromName: session.user.name,
+        subject: trimmedSubject,
+        body: trimmedBody,
+        ticketId: ticket.id,
+        orderId: orderId ?? null,
+      }),
+    });
+
+    // In-app notification for admin
+    const admins = await prisma.user.findMany({
+      where: { role: "CRIMSON" },
+      select: { id: true },
+    });
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((a) => ({
+          userId: a.id,
+          type: "SUPPORT_TICKET_OPENED",
+          channel: "EMAIL",
+          message: `New support ticket from ${session.user.name}: ${trimmedSubject}`,
+        })),
+      });
+    }
+
+    return {
+      success: true,
+      message: "Ticket created.",
+      data: { ticketId: ticket.id },
+    };
+  } catch {
+    return { success: false, message: "Failed to create ticket." };
+  }
+}
+
+/**
+ * List the current shopper's support tickets.
+ */
+export async function getMyTickets() {
+  const session = await requireSession();
+  return prisma.supportTicket.findMany({
+    where: { userId: session.user.id },
+    include: { _count: { select: { messages: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/**
+ * Get a single ticket owned by the current shopper, with all messages.
+ */
+export async function getMyTicket(ticketId: string) {
+  const session = await requireSession();
+  return prisma.supportTicket.findFirst({
+    where: { id: ticketId, userId: session.user.id },
+    include: { messages: { orderBy: { createdAt: "asc" } } },
+  });
+}
+
+/**
+ * Shopper replies to their own ticket.
+ */
+export async function replyToMyTicket(
+  ticketId: string,
+  body: string,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+    const trimmedBody = body.trim();
+    if (!trimmedBody || trimmedBody.length < 2) {
+      return { success: false, message: "Reply cannot be empty." };
+    }
+
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id: ticketId, userId: session.user.id },
+    });
+    if (!ticket) return { success: false, message: "Ticket not found." };
+    if (ticket.status === "CLOSED") {
+      return {
+        success: false,
+        message: "This ticket is closed. Please open a new one.",
+      };
+    }
+
+    await prisma.supportMessage.create({
+      data: {
+        ticketId,
+        fromEmail: session.user.email,
+        body: trimmedBody,
+        isFromAdmin: false,
+      },
+    });
+
+    // Re-open ticket if it was in-progress (shopper responded)
+    if (ticket.status === "IN_PROGRESS") {
+      await prisma.supportTicket.update({
+        where: { id: ticketId },
+        data: { status: "OPEN" },
+      });
+    }
+
+    // Notify admin about new shopper reply
+    const { SupportReplyNotificationEmail } =
+      await import("@/emails/support-reply-notification");
+    const admins = await prisma.user.findMany({
+      where: { role: "CRIMSON" },
+      select: { id: true, email: true },
+    });
+    if (admins.length > 0) {
+      // Email first admin
+      await sendEmail({
+        to: admins[0].email,
+        subject: `Re: ${ticket.subject} — New reply from ${session.user.name}`,
+        react: React.createElement(SupportReplyNotificationEmail, {
+          fromName: session.user.name,
+          subject: ticket.subject,
+          body: trimmedBody,
+          ticketId: ticket.id,
+          isFromAdmin: false,
+        }),
+      });
+
+      // In-app notification for all admins
+      await prisma.notification.createMany({
+        data: admins.map((a) => ({
+          userId: a.id,
+          type: "SUPPORT_TICKET_REPLY",
+          channel: "EMAIL",
+          message: `${session.user.name} replied to ticket: ${ticket.subject}`,
+        })),
+      });
+    }
+
+    return { success: true, message: "Reply sent." };
+  } catch {
+    return { success: false, message: "Failed to send reply." };
+  }
+}
+
+// ─── Admin Ticket Actions ────────────────────────────────────────
 
 /**
  * List support tickets, optionally filtered by status.
@@ -16,7 +227,10 @@ export async function getTickets(status?: SupportTicketStatus) {
   await requireRole("CRIMSON");
   return prisma.supportTicket.findMany({
     where: status ? { status } : undefined,
-    include: { messages: true, user: { select: { id: true, name: true, email: true } } },
+    include: {
+      messages: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -36,7 +250,7 @@ export async function getTicket(ticketId: string) {
 }
 
 /**
- * Update a ticket's status.
+ * Update a ticket's status. Sends email to the shopper on status change.
  */
 export async function updateTicketStatus(
   ticketId: string,
@@ -44,13 +258,41 @@ export async function updateTicketStatus(
 ): Promise<ActionResult> {
   try {
     await requireRole("CRIMSON");
-    await prisma.supportTicket.update({
+    const ticket = await prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
         status,
         ...(status === "CLOSED" ? { closedAt: new Date() } : {}),
       },
     });
+
+    // Email the shopper about the status change
+    const { SupportStatusChangeEmail } =
+      await import("@/emails/support-status-change");
+    await sendEmail({
+      to: ticket.fromEmail,
+      subject: `Your support ticket has been updated — #${ticketId.slice(-8).toUpperCase()}`,
+      react: React.createElement(SupportStatusChangeEmail, {
+        fromName: ticket.fromName ?? "there",
+        subject: ticket.subject,
+        ticketId,
+        newStatus: status,
+      }),
+      replyTo: "support@kolekt.ng",
+    });
+
+    // In-app notification for shopper
+    if (ticket.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: ticket.userId,
+          type: "SUPPORT_TICKET_STATUS",
+          channel: "EMAIL",
+          message: `Your support ticket "${ticket.subject}" is now ${status.replace("_", " ").toLowerCase()}.`,
+        },
+      });
+    }
+
     return { success: true, message: "Ticket status updated." };
   } catch {
     return { success: false, message: "Failed to update status." };
@@ -58,7 +300,7 @@ export async function updateTicketStatus(
 }
 
 /**
- * Reply to a support ticket. Creates a SupportMessage and sends an email.
+ * Reply to a support ticket. Creates a SupportMessage and sends an email to the shopper.
  */
 export async function replyToTicket(
   ticketId: string,
@@ -89,20 +331,33 @@ export async function replyToTicket(
       });
     }
 
+    // Email the shopper with proper template
+    const { SupportReplyNotificationEmail } =
+      await import("@/emails/support-reply-notification");
     await sendEmail({
       to: ticket.fromEmail,
       subject: `Re: ${ticket.subject}`,
-      react: React.createElement("div", {}, [
-        React.createElement("p", { key: "greeting" }, `Hi ${ticket.fromName ?? "there"},`),
-        React.createElement("p", { key: "body" }, body),
-        React.createElement(
-          "p",
-          { key: "sig" },
-          "— Ade's Kolekt Support",
-        ),
-      ]),
+      react: React.createElement(SupportReplyNotificationEmail, {
+        fromName: ticket.fromName ?? "there",
+        subject: ticket.subject,
+        body,
+        ticketId,
+        isFromAdmin: true,
+      }),
       replyTo: "support@kolekt.ng",
     });
+
+    // In-app notification for shopper
+    if (ticket.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: ticket.userId,
+          type: "SUPPORT_TICKET_REPLY",
+          channel: "EMAIL",
+          message: `Support team replied to your ticket: ${ticket.subject}`,
+        },
+      });
+    }
 
     return { success: true, message: "Reply sent." };
   } catch {

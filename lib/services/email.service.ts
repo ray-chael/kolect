@@ -25,6 +25,8 @@ const SUBJECTS: Record<NotificationType, string> = {
   CAMPAIGN_CONTRIBUTION: "Someone contributed to your campaign",
   CAMPAIGN_FUNDED: "Your Help Me Pay campaign is fully funded!",
   SUPPORT_TICKET_OPENED: "New support ticket",
+  SUPPORT_TICKET_REPLY: "New reply on your support ticket",
+  SUPPORT_TICKET_STATUS: "Support ticket status updated",
   ORDER_MESSAGE_RECEIVED: "New message about an order",
   CAMPAIGN_MESSAGE_RECEIVED: "New message about a campaign",
   PAYMENT_PROOF_SUBMITTED: "Payment proof submitted",

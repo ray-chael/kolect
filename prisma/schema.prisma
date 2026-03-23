@@ -337,6 +337,8 @@ enum NotificationType {
   CAMPAIGN_CONTRIBUTION
   CAMPAIGN_FUNDED
   SUPPORT_TICKET_OPENED
+  SUPPORT_TICKET_REPLY
+  SUPPORT_TICKET_STATUS
   ORDER_MESSAGE_RECEIVED
   CAMPAIGN_MESSAGE_RECEIVED
   PAYMENT_PROOF_SUBMITTED
@@ -569,7 +571,7 @@ model SupportTicket {
   fromName      String?
   subject       String
   body          String?             @db.Text
-  resendEmailId String              @unique
+  resendEmailId String?             @unique
   status        SupportTicketStatus @default(OPEN)
   orderId       String?
   userId        String?

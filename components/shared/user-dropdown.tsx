@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Heart,
   HeartHandshake,
+  LifeBuoy,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
@@ -124,6 +125,15 @@ export function UserDropdown({ name, email }: UserDropdownProps) {
             >
               <HeartHandshake className="h-4 w-4 text-muted-foreground" />
               My Campaigns
+            </Link>
+            <Link
+              href="/support"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <LifeBuoy className="h-4 w-4 text-muted-foreground" />
+              Support
             </Link>
           </div>
 
