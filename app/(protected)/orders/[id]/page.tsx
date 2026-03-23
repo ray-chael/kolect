@@ -1,10 +1,15 @@
 import { PaymentForm } from "@/components/forms/payment-form";
 import { CreateHelpMePayForm } from "@/components/forms/create-help-me-pay-form";
+import { DeliverySelectionForm } from "@/components/forms/delivery-selection-form";
+import { ConfirmReceiptButton } from "@/components/shared/confirm-receipt-button";
+import { OrderStatusTimeline } from "@/components/shared/order-status-timeline";
 import { Progress } from "@/components/ui/progress";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { orderService } from "@/lib/services/order.service";
+import { pickupLocationService } from "@/lib/services/pickup-location.service";
 import { coerceCustomSelections, formatNaira } from "@/lib/types";
+import type { PickupLocationSummary } from "@/lib/types";
 import { calculateLiquidationPercent, daysUntilExpiry } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import { getBankTransferDetails } from "@/actions/settings";
@@ -63,6 +68,27 @@ export default async function OrderDetailPage({
   const remaining = order.totalAmount - order.amountPaid;
   const selectionEntries = getSelectionEntries(order);
   const contributionPlanOrder = isContributionPlanOrder(order.customSelections);
+  const needsDeliverySelection =
+    order.status === "PAID" && !order.addressId && !order.pickupLocationId;
+
+  let pickupLocations: PickupLocationSummary[] = [];
+  if (needsDeliverySelection) {
+    const locations = await pickupLocationService.getActive();
+    pickupLocations = locations.map((l) => ({
+      id: l.id,
+      name: l.name,
+      city: l.city,
+      state: l.state,
+      addressLine1: l.addressLine1,
+      addressLine2: l.addressLine2,
+      landmark: l.landmark,
+      contactName: l.contactName,
+      contactPhone: l.contactPhone,
+      pickupInstructions: l.pickupInstructions,
+      logisticsProvider: l.logisticsProvider,
+    }));
+  }
+
   const isPickup = order.deliveryMethod === "PICKUP";
 
   return (
@@ -88,10 +114,17 @@ export default async function OrderDetailPage({
               {new Date(order.createdAt).toLocaleDateString("en-NG")}
             </p>
           </div>
-          <span className="rounded-full bg-muted px-4 py-1.5 text-xs font-medium tracking-wide">
-            {order.status}
-          </span>
         </div>
+
+        {/* Order Status Timeline */}
+        <OrderStatusTimeline
+          status={order.status}
+          createdAt={order.createdAt}
+          completedAt={order.completedAt}
+          procuredAt={order.procuredAt}
+          deliveredAt={order.deliveredAt}
+          receivedAt={order.receivedAt}
+        />
 
         {/* Liquidation Progress */}
         <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
@@ -178,6 +211,11 @@ export default async function OrderDetailPage({
                 {`, ${order.deliveryAddress.city}, ${order.deliveryAddress.state}`}
               </p>
             </div>
+          ) : needsDeliverySelection ? (
+            <DeliverySelectionForm
+              orderId={order.id}
+              pickupLocations={pickupLocations}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               No fulfillment details recorded.
@@ -292,6 +330,36 @@ export default async function OrderDetailPage({
                 {order.trackingNote}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Confirm Receipt */}
+        {order.status === "DELIVERED" && (
+          <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-3">
+            <h2 className="font-semibold tracking-tight">Confirm Receipt</h2>
+            <p className="text-sm text-muted-foreground">
+              Have you received your order? Let us know so we can mark it as
+              complete.
+            </p>
+            <ConfirmReceiptButton orderId={order.id} />
+          </div>
+        )}
+
+        {order.status === "RECEIVED" && (
+          <div className="rounded-2xl border border-border/60 bg-card p-6">
+            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <span>✓</span>
+              <span className="font-medium">
+                You confirmed receipt on{" "}
+                {order.receivedAt
+                  ? new Date(order.receivedAt).toLocaleDateString("en-NG", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : ""}
+              </span>
+            </div>
           </div>
         )}
       </div>

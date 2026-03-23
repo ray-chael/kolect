@@ -175,6 +175,7 @@ export const updateOrderStatusSchema = z.object({
     "PROCURED",
     "DISPATCHED",
     "DELIVERED",
+    "RECEIVED",
     "CANCELLED",
     "EXPIRED",
   ]),

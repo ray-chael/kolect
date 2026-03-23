@@ -37,6 +37,11 @@ export function CreateGroupBuyForm({
   const [maxMembers, setMaxMembers] = useState("10");
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
+  const creatorEmail = session?.user?.email?.trim().toLowerCase() ?? "";
+  const [allowedEmails, setAllowedEmails] = useState<string[]>(
+    creatorEmail ? [creatorEmail] : [],
+  );
+  const [emailInput, setEmailInput] = useState("");
 
   if (!open) {
     return (
@@ -61,6 +66,11 @@ export function CreateGroupBuyForm({
       return;
     }
 
+    if (allowedEmails.length < 2) {
+      toast.error("Add at least 2 member emails for the group buy");
+      return;
+    }
+
     formData.set("productId", productId);
     formData.set("title", title.trim());
     formData.set("splitType", splitType);
@@ -68,6 +78,7 @@ export function CreateGroupBuyForm({
     formData.set("maxMembers", maxMembers);
     if (selectedColor) formData.set("selectedColor", selectedColor);
     if (selectedSize) formData.set("selectedSize", selectedSize);
+    formData.set("allowedEmails", allowedEmails.join(","));
 
     startTransition(async () => {
       const result = await createGroupBuy(formData);
@@ -123,7 +134,10 @@ export function CreateGroupBuyForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Split type</Label>
-              <Select value={splitType} onValueChange={(v) => v && setSplitType(v)}>
+              <Select
+                value={splitType}
+                onValueChange={(v) => v && setSplitType(v)}
+              >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -131,9 +145,7 @@ export function CreateGroupBuyForm({
                   <SelectItem value="FLEXIBLE">
                     Flexible — pay any amount
                   </SelectItem>
-                  <SelectItem value="EQUAL">
-                    Equal — split evenly
-                  </SelectItem>
+                  <SelectItem value="EQUAL">Equal — split evenly</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -154,7 +166,10 @@ export function CreateGroupBuyForm({
 
           <div className="space-y-2">
             <Label>Deadline</Label>
-            <Select value={deadlineDays} onValueChange={(v) => v && setDeadlineDays(v)}>
+            <Select
+              value={deadlineDays}
+              onValueChange={(v) => v && setDeadlineDays(v)}
+            >
               <SelectTrigger className="rounded-xl">
                 <SelectValue />
               </SelectTrigger>
@@ -180,7 +195,10 @@ export function CreateGroupBuyForm({
           {colors.length > 0 && (
             <div className="space-y-2">
               <Label>Color</Label>
-              <Select value={selectedColor} onValueChange={(v) => v && setSelectedColor(v)}>
+              <Select
+                value={selectedColor}
+                onValueChange={(v) => v && setSelectedColor(v)}
+              >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Choose a color" />
                 </SelectTrigger>
@@ -198,7 +216,10 @@ export function CreateGroupBuyForm({
           {sizes.length > 0 && (
             <div className="space-y-2">
               <Label>Size</Label>
-              <Select value={selectedSize} onValueChange={(v) => v && setSelectedSize(v)}>
+              <Select
+                value={selectedSize}
+                onValueChange={(v) => v && setSelectedSize(v)}
+              >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Choose a size" />
                 </SelectTrigger>
@@ -212,6 +233,84 @@ export function CreateGroupBuyForm({
               </Select>
             </div>
           )}
+
+          {/* Allowed contributors emails */}
+          <div className="space-y-2">
+            <Label>
+              Group members (emails) <span className="text-destructive">*</span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Your email is included automatically. Add every other person in
+              this group buy — only these people will be able to contribute.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    const email = emailInput.trim().toLowerCase();
+                    if (
+                      email &&
+                      email.includes("@") &&
+                      !allowedEmails.includes(email)
+                    ) {
+                      setAllowedEmails([...allowedEmails, email]);
+                      setEmailInput("");
+                    }
+                  }
+                }}
+                placeholder="Type email and press Enter"
+                disabled={isPending}
+                className="rounded-xl flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl shrink-0"
+                onClick={() => {
+                  const email = emailInput.trim().toLowerCase();
+                  if (
+                    email &&
+                    email.includes("@") &&
+                    !allowedEmails.includes(email)
+                  ) {
+                    setAllowedEmails([...allowedEmails, email]);
+                    setEmailInput("");
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </div>
+            {allowedEmails.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {allowedEmails.map((email) => (
+                  <span
+                    key={email}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                  >
+                    {email}
+                    {email !== creatorEmail && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAllowedEmails(
+                            allowedEmails.filter((e) => e !== email),
+                          )
+                        }
+                        className="hover:text-destructive transition-colors ml-0.5"
+                      >
+                        &times;
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Button
             type="submit"

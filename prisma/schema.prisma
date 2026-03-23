@@ -230,6 +230,7 @@ model Order {
   completedAt        DateTime?
   procuredAt         DateTime?
   deliveredAt        DateTime?
+  receivedAt         DateTime?
   riderName          String?
   riderPhone         String?
   trackingNote       String?
@@ -253,6 +254,7 @@ enum OrderStatus {
   PROCURED
   DISPATCHED
   DELIVERED
+  RECEIVED
   CANCELLED
   EXPIRED
 }
@@ -435,6 +437,7 @@ model GroupBuy {
   interestPercent Float          @default(0) // Interest % based on deadline duration
   amountRaised    Int            @default(0)
   maxMembers      Int            @default(10)
+  allowedEmails   String[]       // Predefined list of contributor emails allowed to pay
   status          GroupBuyStatus @default(OPEN)
   orderId         String?        @unique
   order           Order?         @relation("GroupBuyOrder", fields: [orderId], references: [id])
@@ -469,6 +472,7 @@ model GroupBuyContribution {
   paystackData Json?
   createdAt    DateTime          @default(now())
 
+  @@unique([groupBuyId, email])
   @@index([groupBuyId])
   @@map("group_buy_contributions")
 }

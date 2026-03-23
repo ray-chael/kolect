@@ -739,7 +739,15 @@ export function ProductPurchasePanel({
                       id="pickup-location"
                       className="w-full rounded-xl"
                     >
-                      <SelectValue placeholder="Choose a pickup location" />
+                      {selectedPickupLocation ? (
+                        <span>
+                          {selectedPickupLocation.name} -{" "}
+                          {selectedPickupLocation.city},{" "}
+                          {selectedPickupLocation.state}
+                        </span>
+                      ) : (
+                        <SelectValue placeholder="Choose a pickup location" />
+                      )}
                     </SelectTrigger>
                     <SelectContent>
                       {pickupLocations.map((location) => (

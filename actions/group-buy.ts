@@ -9,6 +9,9 @@ import { DEADLINE_OPTIONS, MIN_HELPER_CONTRIBUTION_KOBO } from "@/lib/consts";
 import { v4 as uuidv4 } from "uuid";
 import { PAYSTACK_ENDPOINTS } from "@/lib/consts";
 import type { PaystackInitResponse } from "@/lib/types";
+import { sendEmail } from "@/lib/email";
+import { formatNaira } from "@/lib/types";
+import { GroupBuyInviteEmail } from "@/emails/group-buy-invite";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -24,17 +27,40 @@ export async function createGroupBuy(
     const splitType = (formData.get("splitType") as string) || "FLEXIBLE";
     const maxMembers = Number(formData.get("maxMembers") || 10);
     const deadlineDays = Number(formData.get("deadlineDays") || 30);
-    const selectedColor = (formData.get("selectedColor") as string) || undefined;
+    const selectedColor =
+      (formData.get("selectedColor") as string) || undefined;
     const selectedSize = (formData.get("selectedSize") as string) || undefined;
+    const allowedEmailsRaw =
+      (formData.get("allowedEmails") as string)?.trim() || "";
+
+    // Parse and validate allowed emails, always include the creator
+    const creatorEmail = session.user.email?.trim().toLowerCase() ?? "";
+    const parsedEmails = allowedEmailsRaw
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.length > 0 && e.includes("@"));
+    // Ensure creator is always in the list
+    if (creatorEmail && !parsedEmails.includes(creatorEmail)) {
+      parsedEmails.unshift(creatorEmail);
+    }
+    const allowedEmails = parsedEmails;
 
     if (!productId) return { success: false, message: "Product is required" };
-    if (!title || title.length < 3) return { success: false, message: "Title must be at least 3 characters" };
-    if (maxMembers < 2 || maxMembers > 50) return { success: false, message: "Max members must be between 2 and 50" };
+    if (!title || title.length < 3)
+      return { success: false, message: "Title must be at least 3 characters" };
+    if (maxMembers < 2 || maxMembers > 50)
+      return {
+        success: false,
+        message: "Max members must be between 2 and 50",
+      };
 
     const validDeadline = DEADLINE_OPTIONS.find((d) => d.days === deadlineDays);
-    if (!validDeadline) return { success: false, message: "Invalid deadline option" };
+    if (!validDeadline)
+      return { success: false, message: "Invalid deadline option" };
 
-    const product = await prisma.product.findUnique({ where: { id: productId } });
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product || product.status !== "AVAILABLE") {
       return { success: false, message: "Product is not available" };
     }
@@ -66,9 +92,34 @@ export async function createGroupBuy(
         targetAmount: totalAmount,
         interestPercent,
         maxMembers,
+        allowedEmails,
         expiresAt: deadlineFromDays(deadlineDays),
       },
     });
+
+    // Notify all invited members (except creator) via email
+    const creatorName = session.user.name ?? "Someone";
+    const othersToNotify = allowedEmails.filter((e) => e !== creatorEmail);
+    if (othersToNotify.length > 0) {
+      const emailPromises = othersToNotify.map((memberEmail) =>
+        sendEmail({
+          to: memberEmail,
+          subject: `You've been added to a group buy for ${product.name}`,
+          react: GroupBuyInviteEmail({
+            creatorName,
+            productName: product.name,
+            targetAmount: formatNaira(totalAmount),
+            groupBuySlug: groupBuy.slug,
+            splitType: splitType === "EQUAL" ? "EQUAL" : "FLEXIBLE",
+            memberCount: allowedEmails.length,
+          }),
+        }),
+      );
+      // Fire and forget — don't block the response
+      Promise.all(emailPromises).catch((err) =>
+        console.error("[createGroupBuy] Failed to send invite emails:", err),
+      );
+    }
 
     return {
       success: true,
@@ -78,7 +129,8 @@ export async function createGroupBuy(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to create group buy",
+      message:
+        error instanceof Error ? error.message : "Failed to create group buy",
     };
   }
 }
@@ -93,7 +145,13 @@ export async function getGroupBuy(slug: string) {
       creator: { select: { id: true, name: true, image: true } },
       contributions: {
         where: { status: "SUCCESS" },
-        select: { id: true, name: true, amount: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          amount: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: "desc" },
       },
       order: { select: { id: true, status: true } },
@@ -112,9 +170,11 @@ export async function contributeToGroupBuy(
     const email = (formData.get("email") as string)?.trim().toLowerCase();
     const amountKobo = Number(formData.get("amount"));
 
-    if (!groupBuyId) return { success: false, message: "Group buy is required" };
+    if (!groupBuyId)
+      return { success: false, message: "Group buy is required" };
     if (!name) return { success: false, message: "Name is required" };
-    if (!email || !email.includes("@")) return { success: false, message: "Valid email is required" };
+    if (!email || !email.includes("@"))
+      return { success: false, message: "Valid email is required" };
     if (!amountKobo || amountKobo < MIN_HELPER_CONTRIBUTION_KOBO) {
       return { success: false, message: "Minimum contribution is ₦1,000" };
     }
@@ -125,17 +185,46 @@ export async function contributeToGroupBuy(
     });
 
     if (!groupBuy || groupBuy.status !== "OPEN") {
-      return { success: false, message: "This group buy is no longer accepting contributions" };
+      return {
+        success: false,
+        message: "This group buy is no longer accepting contributions",
+      };
     }
 
     if (new Date() > groupBuy.expiresAt) {
       return { success: false, message: "This group buy has expired" };
     }
 
+    // Check if email is in allowedEmails list (if restrictions are set)
+    if (
+      groupBuy.allowedEmails.length > 0 &&
+      !groupBuy.allowedEmails.includes(email)
+    ) {
+      return {
+        success: false,
+        message:
+          "Your email is not in the allowed contributors list for this group buy",
+      };
+    }
+
+    // Check for duplicate contribution (one payment per email)
+    const existingContribution = await prisma.groupBuyContribution.findFirst({
+      where: { groupBuyId, email, status: "SUCCESS" },
+    });
+    if (existingContribution) {
+      return {
+        success: false,
+        message: "You have already contributed to this group buy",
+      };
+    }
+
     const remaining = groupBuy.targetAmount - groupBuy.amountRaised;
     const cappedAmount = Math.min(amountKobo, remaining);
 
-    if (cappedAmount < MIN_HELPER_CONTRIBUTION_KOBO && cappedAmount < remaining) {
+    if (
+      cappedAmount < MIN_HELPER_CONTRIBUTION_KOBO &&
+      cappedAmount < remaining
+    ) {
       return { success: false, message: "Minimum contribution is ₦1,000" };
     }
 

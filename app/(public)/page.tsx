@@ -134,6 +134,9 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Flash Sales (top of page for urgency) ─────────────── */}
+      <FlashSaleSection products={flashSaleProducts} />
+
       {/* ── Trust Bar ─────────────────────────────────────────── */}
       <section
         aria-label="Why shop with us"
@@ -551,9 +554,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── Flash Sales ───────────────────────────────────────── */}
-      <FlashSaleSection products={flashSaleProducts} />
 
       {/* ── Trending Now ──────────────────────────────────────── */}
       {trending.length > 0 && (

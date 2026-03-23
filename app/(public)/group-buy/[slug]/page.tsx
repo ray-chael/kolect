@@ -225,6 +225,7 @@ export default async function GroupBuyPage({
                 contributorCount={groupBuy.contributions.length}
                 maxMembers={groupBuy.maxMembers}
                 bankTransfer={bankTransfer}
+                allowedEmails={groupBuy.allowedEmails ?? []}
               />
             </div>
           ) : (

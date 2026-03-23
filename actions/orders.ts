@@ -327,3 +327,176 @@ export async function getOrderDetails(
     };
   }
 }
+
+/**
+ * Select delivery method for orders created via group-buy / help-me-pay
+ * that were auto-created without delivery details.
+ */
+export async function selectDeliveryMethod(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    const orderId = formData.get("orderId") as string;
+    const deliveryMethod = formData.get("deliveryMethod") as string;
+
+    if (!orderId) return { success: false, message: "Order is required" };
+    if (!deliveryMethod || !["DELIVERY", "PICKUP"].includes(deliveryMethod)) {
+      return { success: false, message: "Invalid delivery method" };
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { groupBuy: true, helpMePay: true },
+    });
+
+    if (!order || order.userId !== session.user.id) {
+      return { success: false, message: "Order not found" };
+    }
+
+    // Only allow if order has no delivery details set yet
+    if (order.addressId || order.pickupLocationId) {
+      return { success: false, message: "Delivery method already selected" };
+    }
+
+    if (deliveryMethod === "PICKUP") {
+      const pickupLocationId = formData.get("pickupLocationId") as string;
+      if (!pickupLocationId) {
+        return { success: false, message: "Pickup location is required" };
+      }
+
+      const location = await prisma.pickupLocation.findUnique({
+        where: { id: pickupLocationId, isActive: true },
+      });
+      if (!location) {
+        return { success: false, message: "Pickup location not found" };
+      }
+
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          deliveryMethod: "PICKUP",
+          pickupLocationId,
+          deliveryFeeKobo: 0,
+        },
+      });
+    } else {
+      // DELIVERY
+      const addressId = (formData.get("addressId") as string) || undefined;
+
+      let finalAddressId = addressId;
+
+      if (!addressId || addressId === "new") {
+        // Create new address
+        const recipientName = (formData.get("recipientName") as string)?.trim();
+        const phone = (formData.get("phone") as string)?.trim();
+        const addressLine1 = (formData.get("addressLine1") as string)?.trim();
+        const addressLine2 = (formData.get("addressLine2") as string)?.trim() || null;
+        const city = (formData.get("city") as string)?.trim();
+        const state = (formData.get("state") as string)?.trim();
+        const addressLabel = (formData.get("addressLabel") as string)?.trim() || "Default";
+
+        if (!recipientName || !phone || !addressLine1 || !city || !state) {
+          return { success: false, message: "All address fields are required" };
+        }
+
+        const address = await prisma.deliveryAddress.create({
+          data: {
+            userId: session.user.id,
+            label: addressLabel,
+            recipientName,
+            phone,
+            addressLine1,
+            addressLine2,
+            city,
+            state,
+          },
+        });
+        finalAddressId = address.id;
+      } else {
+        // Verify the address belongs to the user
+        const address = await prisma.deliveryAddress.findUnique({
+          where: { id: addressId },
+        });
+        if (!address || address.userId !== session.user.id) {
+          return { success: false, message: "Address not found" };
+        }
+      }
+
+      // Compute delivery fee
+      const addr = await prisma.deliveryAddress.findUnique({
+        where: { id: finalAddressId },
+        select: { state: true, city: true },
+      });
+      const [defaultFeeRaw, lagosRatesRaw, stateRatesRaw] = await Promise.all([
+        getSettingValue("defaultDeliveryFee"),
+        getSettingValue("lagosLgaRates"),
+        getSettingValue("stateDeliveryRates"),
+      ]);
+      const rates = parseDeliveryRates(
+        lagosRatesRaw || "{}",
+        stateRatesRaw || "{}",
+        Number(defaultFeeRaw) || 0,
+      );
+      const deliveryFeeKobo = addr?.state
+        ? computeDeliveryFeeKobo(addr.state, addr.city, rates)
+        : 0;
+
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          deliveryMethod: "DELIVERY",
+          addressId: finalAddressId,
+          deliveryFeeKobo,
+          totalAmount: { increment: deliveryFeeKobo },
+        },
+      });
+    }
+
+    return { success: true, message: "Delivery method saved" };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to save delivery method",
+    };
+  }
+}
+
+/**
+ * Shopper confirms receipt of a delivered order
+ */
+export async function confirmReceipt(
+  orderId: string,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order || order.userId !== session.user.id) {
+      return { success: false, message: "Order not found" };
+    }
+
+    if (order.status !== "DELIVERED") {
+      return { success: false, message: "Order has not been delivered yet" };
+    }
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "RECEIVED",
+        receivedAt: new Date(),
+      },
+    });
+
+    return { success: true, message: "Receipt confirmed! Thank you." };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to confirm receipt",
+    };
+  }
+}

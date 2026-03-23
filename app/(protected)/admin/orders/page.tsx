@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatNaira } from "@/lib/types";
 import { OrderStatus } from "@/app/generated/prisma/client";
 import { AdminOrdersFilter } from "@/components/shared/admin-orders-filter";
+import { AdminOrderStatusForm } from "@/components/admin/order-status-form";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,9 @@ export default async function AdminOrdersPage({
               <th className="px-5 py-3.5 text-left text-xs tracking-widest uppercase font-medium text-muted-foreground">
                 Created
               </th>
+              <th className="px-5 py-3.5 text-left text-xs tracking-widest uppercase font-medium text-muted-foreground">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -121,6 +125,12 @@ export default async function AdminOrdersPage({
                 </td>
                 <td className="px-5 py-4 text-muted-foreground">
                   {new Date(order.createdAt).toLocaleDateString("en-NG")}
+                </td>
+                <td className="px-5 py-4">
+                  <AdminOrderStatusForm
+                    orderId={order.id}
+                    currentStatus={order.status}
+                  />
                 </td>
               </tr>
             ))}

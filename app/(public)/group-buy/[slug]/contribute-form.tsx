@@ -18,6 +18,7 @@ interface GroupBuyContributeFormProps {
   contributorCount: number;
   maxMembers: number;
   bankTransfer?: BankTransferDetails;
+  allowedEmails: string[];
 }
 
 export function GroupBuyContributeForm({
@@ -28,6 +29,7 @@ export function GroupBuyContributeForm({
   contributorCount,
   maxMembers,
   bankTransfer,
+  allowedEmails,
 }: GroupBuyContributeFormProps) {
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<"card" | "transfer">("card");
@@ -45,6 +47,15 @@ export function GroupBuyContributeForm({
 
   function handleSubmit(formData: FormData) {
     if (mode === "transfer") return;
+
+    // Client-side email restriction check
+    if (allowedEmails.length > 0) {
+      const email = (formData.get("email") as string)?.trim().toLowerCase();
+      if (!allowedEmails.includes(email)) {
+        toast.error("Your email is not in the allowed contributors list");
+        return;
+      }
+    }
 
     const nairaValue = Number(formData.get("amountNaira"));
     const amountKobo = nairaToKobo(nairaValue);
@@ -72,6 +83,12 @@ export function GroupBuyContributeForm({
 
   return (
     <form action={handleSubmit} className="space-y-4">
+      {allowedEmails.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          Only invited group members can contribute. Use the email you were
+          invited with.
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="gb-name">Your name</Label>
