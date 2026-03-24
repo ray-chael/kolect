@@ -337,6 +337,7 @@ export function ProductsClient({
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {activeCatName}
                   <button
+                    title="close"
                     onClick={() => handleCategoryChange("")}
                     className="hover:text-primary/70"
                   >
@@ -348,6 +349,7 @@ export function ProductsClient({
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {activeSortLabel}
                   <button
+                    title="close"
                     onClick={() => handleSortChange("")}
                     className="hover:text-primary/70"
                   >

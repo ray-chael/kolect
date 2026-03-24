@@ -577,7 +577,7 @@ export default async function HomePage() {
             </div>
 
             <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-              {trending.map((product) => (
+              {trending.map((product, i) => (
                 <a
                   key={product.id}
                   href={`/collection/${product.slug}`}
@@ -591,6 +591,7 @@ export default async function HomePage() {
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        priority={i === 0}
                       />
                     ) : product.videos?.[0] ? (
                       <ProductVideoThumbnail src={product.videos[0]} />
@@ -671,7 +672,7 @@ export default async function HomePage() {
             </div>
 
             <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-              {featured.map((product) => (
+              {featured.map((product, i) => (
                 <a
                   key={product.id}
                   href={`/collection/${product.slug}`}
@@ -686,7 +687,7 @@ export default async function HomePage() {
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        loading="lazy"
+                        priority={i === 0}
                       />
                     ) : product.videos[0] ? (
                       <ProductVideoThumbnail src={product.videos[0]} />

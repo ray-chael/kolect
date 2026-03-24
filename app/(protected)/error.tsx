@@ -1,0 +1,42 @@
+"use client";
+
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Link } from "lucide-react";
+
+export default function ProtectedError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+        <AlertTriangle className="h-8 w-8 text-destructive" />
+      </div>
+      <h1 className="font-display text-3xl font-bold tracking-tight">
+        Something went wrong
+      </h1>
+      <p className="mt-3 max-w-sm text-muted-foreground">
+        An error occurred while loading this page.
+        {error.digest && (
+          <span className="mt-1 block text-xs text-muted-foreground/60">
+            Ref: {error.digest}
+          </span>
+        )}
+      </p>
+      <div className="mt-8 flex gap-3">
+        <Button onClick={reset}>Try again</Button>
+        <Button variant="outline">
+          <Link href="/dashboard">Go to dashboard</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
